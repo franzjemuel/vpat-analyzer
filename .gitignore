@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+bin/
+lib/
+include/
+pyvenv.cfg
+.DS_Store
+uploads/
+output.*

@@ -1,0 +1,132 @@
+{
+  "Blind or Low Vision": [
+    {
+      "id": "1.1.1",
+      "support": "Supports",
+      "remarks": "Images have alt text."
+    },
+    {
+      "id": "1.3.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "2.4.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "4.1.2",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Low Vision and Contrast Sensitivity": [
+    {
+      "id": "1.4.3",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.4.6",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.4.11",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Color Blindness": [
+    {
+      "id": "1.4.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.4.3",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.4.11",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Deaf or Hard of Hearing": [
+    {
+      "id": "1.2.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.2.2",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.2.3",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "1.2.5",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Cognitive, Language, and Learning Disabilities": [
+    {
+      "id": "2.4.4",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "3.1.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "3.1.2",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "3.3.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "3.3.2",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Seizure and Light Sensitivity": [
+    {
+      "id": "2.3.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Motor Disabilities": [
+    {
+      "id": "2.1.1",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "2.1.2",
+      "support": "Not Evaluated",
+      "remarks": ""
+    },
+    {
+      "id": "2.4.7",
+      "support": "Not Evaluated",
+      "remarks": ""
+    }
+  ],
+  "Other (Custom Standards)": []
+}

@@ -1,0 +1,4165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPAT/ACR Accessibility Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        /* === RESET & BASE STYLES === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1a202c;
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        /* === DARK MODE === */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            color: #f7fafc;
+        }
+
+        body.dark-mode .section-card,
+        body.dark-mode .user-group-card,
+        body.dark-mode .standard-item,
+        body.dark-mode .stat-card,
+        body.dark-mode .upload-zone,
+        body.dark-mode .file-display {
+            background: #2d3748;
+            color: #f7fafc;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .upload-zone {
+            background: #374151;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .upload-zone:hover,
+        body.dark-mode .upload-zone.dragover {
+            border-color: #60a5fa;
+            background: #1e3a8a;
+        }
+
+        body.dark-mode .upload-zone.file-selected {
+            border-color: #34d399;
+            background: #064e3b;
+        }
+
+        body.dark-mode .file-display {
+            background: #065f46;
+            border-color: #34d399;
+        }
+
+        body.dark-mode button,
+        body.dark-mode select,
+        body.dark-mode input,
+        body.dark-mode textarea {
+            background-color: #374151;
+            color: #f7fafc;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        body.dark-mode .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+        }
+
+        body.dark-mode .btn-secondary {
+            background: #374151;
+            color: #f7fafc;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .btn-secondary:hover:not(:disabled) {
+            background: #4b5563;
+            border-color: #9ca3af;
+        }
+
+        body.dark-mode .parsing-info,
+        body.dark-mode .error-message {
+            background: #1f2937;
+            color: #f7fafc;
+            border-color: #4b5563;
+        }
+
+        body.dark-mode .summary-section {
+            background: #1f2937;
+            border-color: #4b5563;
+        }
+
+        body.dark-mode .contrast-toggle {
+            background: #374151;
+            color: #f7fafc;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .contrast-toggle:hover {
+            background: #4b5563;
+            border-color: #9ca3af;
+        }
+
+        /* === LAYOUT CONTAINERS === */
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .app-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .app-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        body.dark-mode .app-title {
+            color: #f7fafc;
+        }
+
+        .app-subtitle {
+            font-size: 1.2rem;
+            color: #4a5568;
+            font-weight: 400;
+        }
+
+        body.dark-mode .app-subtitle {
+            color: #d1d5db;
+        }
+
+        /* === SECTION CARDS === */
+        .section-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .section-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        body.dark-mode .section-title {
+            color: #f7fafc;
+        }
+
+        .section-description {
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        body.dark-mode .section-description {
+            color: #d1d5db;
+        }
+
+        /* === UPLOAD SECTION === */
+        .upload-zone {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f7fafc;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #4299e1;
+            background: #ebf8ff;
+        }
+
+        .upload-zone.file-selected {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #a0aec0;
+            margin-bottom: 1rem;
+        }
+
+        body.dark-mode .upload-icon {
+            color: #9ca3af;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        body.dark-mode .upload-text {
+            color: #f7fafc;
+        }
+
+        .upload-subtext {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        body.dark-mode .upload-subtext {
+            color: #d1d5db;
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        /* === FILE DISPLAY === */
+        .file-display {
+            background: #e6fffa;
+            border: 1px solid #81e6d9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .file-display.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #234e52;
+        }
+
+        body.dark-mode .file-name {
+            color: #34d399;
+        }
+
+        .file-size {
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+
+        body.dark-mode .file-size {
+            color: #d1d5db;
+        }
+
+        /* === FORM CONTROLS === */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        body.dark-mode .form-label {
+            color: #f7fafc;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #2d3748;
+            background: #ffffff;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .text-input::placeholder {
+            color: #a0aec0;
+        }
+
+        body.dark-mode .text-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-input {
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: #4299e1;
+        }
+
+        .checkbox-label {
+            font-weight: 500;
+            color: #2d3748;
+            cursor: pointer;
+        }
+
+        body.dark-mode .checkbox-label {
+            color: #f7fafc;
+        }
+
+        /* === BUTTONS === */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* === LOADING STATES === */
+        .loading-section {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading-section.show {
+            display: block;
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #4299e1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        body.dark-mode .loading-spinner {
+            border-color: #4b5563;
+            border-top-color: #60a5fa;
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        body.dark-mode .loading-text {
+            color: #f7fafc;
+        }
+
+        .loading-step {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        body.dark-mode .loading-step {
+            color: #d1d5db;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* === RESULTS SECTION === */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .parsing-info {
+            background: #ebf8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #2c5282;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        body.dark-mode .stat-number {
+            color: #f7fafc;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        body.dark-mode .stat-label {
+            color: #d1d5db;
+        }
+
+        /* === SUMMARY SECTION === */
+        .summary-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+        .summary-info {
+            flex: 1;
+            min-width: 220px;
+        }
+        .summary-heading {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+        .summary-grade {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        .summary-counts {
+            list-style: none;
+            padding-left: 0;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        .summary-counts li {
+            margin-bottom: 0.3rem;
+        }
+        .summary-counts .count-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-right: 0.3rem;
+        }
+        .summary-chart-container {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body.dark-mode .summary-wrapper {
+            background: #2d3748;
+            border-color: #4a5568;
+        }
+        body.dark-mode .summary-heading,
+        body.dark-mode .summary-grade,
+        body.dark-mode .summary-counts .count-label {
+            color: #f7fafc;
+        }
+        body.dark-mode .summary-counts {
+            color: #d1d5db;
+        }
+
+        /* === USER GROUP CARDS === */
+        .user-groups-grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .user-group-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .user-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .user-group-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+        }
+
+        body.dark-mode .user-group-title {
+            color: #f7fafc;
+        }
+
+        .accessibility-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge-supports {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .badge-partially {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .badge-does-not {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .badge-not-applicable {
+            background: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d1ecf1;
+        }
+
+        .badge-not-evaluated {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .user-group-description {
+            color: #718096;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        body.dark-mode .user-group-description {
+            color: #d1d5db;
+        }
+
+        /* === STANDARDS LIST === */
+        .standards-list {
+            margin-bottom: 1.5rem;
+        }
+
+        .standard-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #e2e8f0;
+        }
+
+        body.dark-mode .standard-item {
+            background: #1f2937;
+            border-color: #4b5563;
+        }
+
+        .standard-item.supports {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        body.dark-mode .standard-item.supports {
+            background: #064e3b;
+        }
+
+        .standard-item.partially {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        body.dark-mode .standard-item.partially {
+            background: #451a03;
+        }
+
+        .standard-item.does-not {
+            border-left-color: #f56565;
+            background: #fffbf0;
+        }
+
+        body.dark-mode .standard-item.does-not {
+            background: #450a0a;
+        }
+
+        .standard-item.not-applicable {
+            border-left-color: #a0aec0;
+            background: #f7fafc;
+        }
+
+        .standard-item.not-evaluated {
+            border-left-color: #cbd5e0;
+            background: #f7fafc;
+        }
+
+        .standard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            gap: 1rem;
+        }
+
+        .standard-name {
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+        }
+
+        body.dark-mode .standard-name {
+            color: #f7fafc;
+        }
+
+        .standard-controls {
+            margin-bottom: 0.75rem;
+        }
+
+        .support-dropdown {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            color: #2d3748;
+            cursor: pointer;
+            width: 100%;
+            max-width: 250px;
+        }
+
+        .support-dropdown:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .comment-input {
+            width: 100%;
+            min-height: 60px;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #2d3748;
+            background: #ffffff;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .comment-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        /* === SUMMARY SECTION === */
+        .summary-section {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        body.dark-mode .summary-title {
+            color: #f7fafc;
+        }
+
+        .summary-text {
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        body.dark-mode .summary-text {
+            color: #d1d5db;
+        }
+
+        /* === EXPORT SECTION === */
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        /* === CONTRAST TOGGLE === */
+        .contrast-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: #ffffff;
+            color: #2d3748;
+            border: 2px solid #e2e8f0;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .contrast-toggle:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        /* === ERROR STYLES === */
+        .error-message {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        /* === PROGRESS BAR === */
+        .progress-container {
+            width: 100%;
+            background: #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 6px;
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #63b3ed, #4299e1);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        body.dark-mode .progress-container {
+            background: #4a5568;
+        }
+
+        body.dark-mode .progress-bar {
+            background: linear-gradient(90deg, #3182ce, #2b6cb0);
+        }
+
+        /* === AI MODE INDICATOR === */
+        .ai-mode-indicator {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            padding: 0.3rem 0.7rem;
+            border-radius: 20px;
+            background: #edf2f7;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+        }
+
+        body.dark-mode .ai-mode-indicator {
+            background: #2d3748;
+            color: #f7fafc;
+            border-color: #4a5568;
+        }
+
+        /* === CATEGORY TITLE === */
+        .category-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 1rem 0 0.5rem;
+        }
+
+        body.dark-mode .category-title {
+            color: #f7fafc;
+        }
+
+        /* === STANDARDS TABLE === */
+        .standards-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .standards-table th,
+        .standards-table td {
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.85rem;
+        }
+
+        body.dark-mode .standards-table th,
+        body.dark-mode .standards-table td {
+            border-color: #4a5568;
+        }
+
+        .standards-table th {
+            background: #edf2f7;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        body.dark-mode .standards-table th {
+            background: #2d3748;
+            color: #f7fafc;
+        }
+
+        .standards-table tr:nth-child(even) td {
+            background: #f7fafc;
+        }
+
+        body.dark-mode .standards-table tr:nth-child(even) td {
+            background: #1f2937;
+        }
+
+        /* === RAW OUTPUT === */
+        .raw-output-container {
+            margin-top: 1rem;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            display: none;
+        }
+
+        .raw-output-container.show {
+            display: block;
+        }
+
+        .raw-output-content {
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background: #edf2f7;
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            color: #2d3748;
+            font-size: 0.8rem;
+        }
+
+        body.dark-mode .raw-output-container {
+            background: #1f2937;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .raw-output-content {
+            background: #2d3748;
+            border-color: #4a5568;
+            color: #f7fafc;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        body.dark-mode .error-message {
+            background: #450a0a;
+            border-color: #dc2626;
+            color: #fca5a5;
+        }
+
+        /* === RESPONSIVE DESIGN === */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 1rem;
+            }
+
+            .app-title {
+                font-size: 2rem;
+            }
+
+            .section-card {
+                padding: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .contrast-toggle {
+                position: static;
+                margin-bottom: 1rem;
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Focus indicators */
+        .btn:focus,
+        .upload-zone:focus {
+            outline: 3px solid #4299e1;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <button class="contrast-toggle" onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">
+        🌙 Dark Mode
+    </button>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1 class="app-title">VPAT/ACR Accessibility Analyzer</h1>
+            <p class="app-subtitle">Transform accessibility compliance documents into user-focused insights</p>
+        </header>
+
+        <!-- Upload Section -->
+        <section class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">1. Upload Document</h2>
+                <p class="section-description">Upload your VPAT or ACR PDF document, or paste content manually</p>
+            </div>
+
+            <div class="upload-zone" id="uploadZone" tabindex="0" role="button" aria-label="Click to select PDF file or drag and drop">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Drop your PDF here or click to browse</div>
+                <div class="upload-subtext">Supports PDF files up to 10MB</div>
+            </div>
+
+            <input type="file" id="fileInput" class="file-input-hidden" accept=".pdf" aria-label="Select PDF file">
+
+            <!-- File Display Area -->
+            <div class="file-display" id="fileDisplay">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="textInput" class="form-label">Or paste VPAT content manually:</label>
+                <textarea 
+                    id="textInput" 
+                    class="text-input" 
+                    placeholder="Paste your VPAT/ACR content here...&#10;&#10;Example:&#10;1.1.1 Non-text Content - Supports - Alt text provided for images&#10;1.3.1 Info and Relationships - Partially Supports - Some headings missing semantic markup">
+                </textarea>
+            </div>
+
+            <div class="checkbox-group">
+                <!-- Default to unchecked so local parsing is used unless the user opts in -->
+                <input type="checkbox" id="useAIVision" class="checkbox-input">
+                <label for="useAIVision" class="checkbox-label">Use AI Vision Parsing (recommended for accuracy)</label>
+            </div>
+        </section>
+
+        <!-- Analysis Controls -->
+        <section class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">2. Analysis Controls</h2>
+                <p class="section-description">Process your document to extract accessibility standards and evaluations</p>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="analyzeBtn" onclick="startAnalysis()">
+                    🔍 Analyze Now
+                </button>
+                <button class="btn btn-secondary" onclick="resetAnalysis()">
+                    🔄 Reset
+                </button>
+            </div>
+
+            <!-- AI Mode Indicator -->
+            <div id="aiModeIndicator" class="ai-mode-indicator" aria-live="polite"></div>
+
+            <!-- Loading State -->
+            <div class="loading-section" id="loadingSection">
+                <div class="loading-spinner"></div>
+                <div class="loading-text" id="loadingText">Processing your document...</div>
+                <div class="loading-step" id="loadingStep"></div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div class="error-message" id="errorMessage" role="alert" aria-live="assertive"></div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="section-card results-section" id="resultsSection">
+            <div class="section-header">
+                <h2 class="section-title">3. Analysis Results</h2>
+                <p class="section-description">Accessibility evaluation organized by disability user groups</p>
+            </div>
+
+            <!-- Results Content -->
+            <div id="results" aria-live="polite"></div>
+
+            <!-- Raw AI Output (collapsible) -->
+            <div id="rawOutputContainer" class="raw-output-container">
+                <button class="btn btn-secondary" id="toggleRawOutput" type="button" onclick="toggleRawOutput()">Show Raw Output</button>
+                <div id="rawOutputContent" class="raw-output-content"></div>
+                <button class="btn btn-secondary" id="copyRawOutput" type="button" onclick="copyRawOutput()">Copy Raw Output</button>
+            </div>
+        </section>
+
+        <!-- Export Section -->
+        <section class="section-card results-section" id="exportSection">
+            <div class="section-header">
+                <h2 class="section-title">4. Export Results</h2>
+                <p class="section-description">Download your analysis in multiple formats</p>
+            </div>
+            <!-- Document details to include in export -->
+            <div class="document-details" style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+                <div class="detail-item" style="flex:1 1 200px;">
+                    <label for="vpatTitleInput" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.25rem;">VPAT Title</label>
+                    <input type="text" id="vpatTitleInput" placeholder="Enter VPAT/ACR title" oninput="updateVpatTitle()" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px;" />
+                </div>
+                <div class="detail-item" style="flex:1 1 200px;">
+                    <label for="reviewerNameInput" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.25rem;">Reviewer Name</label>
+                    <input type="text" id="reviewerNameInput" placeholder="Enter reviewer name" oninput="updateReviewerName()" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px;" />
+                </div>
+            </div>
+            <div class="export-grid">
+                <button class="btn btn-secondary" onclick="exportPDF()">
+                    📄 Export PDF
+                </button>
+                <button class="btn btn-secondary" onclick="exportJSON()">
+                    📊 Export JSON
+                </button>
+                <button class="btn btn-secondary" onclick="exportText()">
+                    📝 Export Text
+                </button>
+            </div>
+            <!-- Toggle to include or exclude summary in the exported PDF -->
+            <div class="summary-toggle" style="margin-top:0.5rem;">
+                <label style="font-size:0.9rem;"><input type="checkbox" id="includeSummary" checked style="margin-right:0.4rem;">Include summary in PDF</label>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        console.log('🚀 VPAT Analyzer starting...');
+
+        // Configure PDF.js
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            console.log('✅ PDF.js configured');
+        } else {
+            console.error('❌ PDF.js not loaded');
+        }
+
+        // === GLOBAL VARIABLES ===
+        let currentResults = null;
+        let uploadedFile = null;
+
+        // Indicates whether AI was used for the most recent analysis
+        let isAIUsed = false;
+        // Used to suppress automatic scrolling when re-rendering results due to inline edits
+        let skipAutoScroll = false;
+
+        // Stores raw AI response for fallback display
+        let aiRawOutput = '';
+
+        // === DOCUMENT METADATA ===
+        // These variables store the optional VPAT title and reviewer name entered by the user.
+        // They are updated via oninput handlers on the corresponding input fields.
+        let vpatTitle = '';
+        let reviewerName = '';
+
+        /**
+         * Update the stored VPAT title whenever the input field changes.
+         */
+        function updateVpatTitle() {
+            try {
+                const input = document.getElementById('vpatTitleInput');
+                vpatTitle = input && input.value ? input.value.trim() : '';
+            } catch (error) {
+                console.error('❌ Failed to update VPAT title:', error);
+            }
+        }
+
+        /**
+         * Update the stored reviewer name whenever the input field changes.
+         */
+        function updateReviewerName() {
+            try {
+                const input = document.getElementById('reviewerNameInput');
+                reviewerName = input && input.value ? input.value.trim() : '';
+            } catch (error) {
+                console.error('❌ Failed to update reviewer name:', error);
+            }
+        }
+
+        // === USER GROUP MAPPING ===
+        const USER_GROUP_MAPPING = {
+            'Blind (Screen Reader Users)': {
+                standards: ['1.1.1', '1.3.1', '2.1.1', '2.4.3', '2.4.6', '2.4.7', '4.1.2', '302.2', '502.2', '502.3', '502.5'],
+                description: 'Non-visual content alternatives, keyboard navigation, semantic structure'
+            },
+            'Low Vision': {
+                standards: ['1.4.1', '1.4.3', '1.4.4', '1.4.10', '1.4.11', '1.4.12', '2.4.7', '302.3'],
+                description: 'Text resizing, contrast, reflow, flexible layouts'
+            },
+            'Color Blindness': {
+                standards: ['1.4.1', '1.4.3', '1.4.11', '302.3'],
+                description: 'Do not rely on color alone for meaning'
+            },
+            'Learning Disabilities (decoding, writing)': {
+                standards: ['3.1.1', '3.2.3', '3.3.2', '3.3.3', '3.3.4', '2.4.4', '2.4.6', '302.9'],
+                description: 'Clarity, consistency, error prevention'
+            },
+            // Split former “Motor Disabilities” into two separate groups:
+            // 1. Motor Disabilities (one hand / limited motion) – people who can use one hand or have limited dexterity.
+            'Motor Disabilities (one hand / limited motion)': {
+                // Provide keyboard support and pointer alternatives; larger targets help limited dexterity.
+                standards: [
+                    '2.1.1', // Keyboard Accessible
+                    '2.1.2', // No Keyboard Trap
+                    '2.2.1', // Timing Adjustable – allow extra time
+                    '2.4.7', // Focus Visible
+                    '2.5.1', // Pointer Gestures – single pointer
+                    '2.5.2', // Pointer Cancellation
+                    '2.5.5', // Target Size
+                    '2.5.7', // Dragging Movements
+                    '3.3.1', // Error Identification
+                    '3.3.2', // Labels or Instructions
+                    '3.3.3', // Error Suggestion
+                    '302.4', // Section 508: Keyboard Operation
+                    '402.2'  // Section 508: No high level exceptions
+                ],
+                description: 'Keyboard support, single‑pointer alternatives, larger targets'
+            },
+            // 2. Severe Physical Disabilities (no hand use) – users cannot use hands at all and rely on alternative input devices.
+            'Severe Physical Disabilities (no hand use)': {
+                standards: [
+                    '2.1.1', // Keyboard Accessible
+                    '2.1.2', // No Keyboard Trap
+                    '2.1.3', // Keyboard (No Exception) – recommended for complete coverage
+                    '2.4.7', // Focus Visible
+                    '2.5.1', // Pointer Gestures
+                    '2.5.2', // Pointer Cancellation
+                    '2.5.4', // Motion Actuation – alternatives for motion-based input
+                    '2.5.7', // Dragging Movements
+                    '1.4.13', // Content on Hover or Focus
+                    '3.3.2', // Labels or Instructions
+                    '3.3.3', // Error Suggestion
+                    '3.3.4', // Error Prevention
+                    '4.1.2', // Name, Role, Value – assistive technology interoperability
+                    '302.4', // Section 508: Keyboard Operation
+                    '402.2'  // Section 508: No high level exceptions
+                ],
+                description: 'Full keyboard control, no drag‑only or motion‑only interactions'
+            },
+            // New user group for people with limited speech or no voice; rely on text input and alternative communication.
+            'Limited Speech': {
+                standards: [
+                    '2.1.1', // Keyboard Accessible – provide keyboard alternative for voice commands
+                    '2.1.2', // No Keyboard Trap
+                    '2.1.3', // Keyboard (No Exception)
+                    '2.1.4', // Character Key Shortcuts – remap for speech users
+                    '2.4.7', // Focus Visible
+                    '2.5.3', // Label in Name – accessible name matches visible label
+                    '3.3.2', // Labels or Instructions
+                    '3.3.3', // Error Suggestion
+                    '3.3.4', // Error Prevention
+                    '4.1.2'  // Name, Role, Value
+                ],
+                description: 'Provide text‑based alternatives to voice interaction and clear labels'
+            },
+            'Deaf/Hard of Hearing': {
+                standards: ['1.2.1', '1.2.2', '1.2.4'],
+                description: 'Audio alternatives, captions'
+            },
+            'Seizure/Light Sensitivity': {
+                standards: ['2.3.1', '2.3.2', '302.8'],
+                description: 'Avoid flashing, animations over threshold'
+            }
+        };
+
+        // === ALL STANDARDS ===
+        const ALL_STANDARDS = {
+            '1.1.1': '1.1.1 Non-text Content',
+            '1.2.1': '1.2.1 Audio-only and Video-only (Prerecorded)',
+            '1.2.2': '1.2.2 Captions (Prerecorded)',
+            '1.2.4': '1.2.4 Captions (Live)',
+            '1.3.1': '1.3.1 Info and Relationships',
+            '1.4.1': '1.4.1 Use of Color',
+            '1.4.3': '1.4.3 Contrast (Minimum)',
+            '1.4.4': '1.4.4 Resize text',
+            '1.4.10': '1.4.10 Reflow',
+            '1.4.11': '1.4.11 Non-text Contrast',
+            '1.4.12': '1.4.12 Text Spacing',
+            '2.1.1': '2.1.1 Keyboard',
+            '2.1.2': '2.1.2 No Keyboard Trap',
+            '2.3.1': '2.3.1 Three Flashes or Below Threshold',
+            '2.3.2': '2.3.2 Three Flashes',
+            '2.4.3': '2.4.3 Focus Order',
+            '2.4.4': '2.4.4 Link Purpose (In Context)',
+            '2.4.6': '2.4.6 Headings and Labels',
+            '2.4.7': '2.4.7 Focus Visible',
+            '2.5.1': '2.5.1 Pointer Gestures',
+            '2.5.2': '2.5.2 Pointer Cancellation',
+            '2.5.3': '2.5.3 Label in Name',
+            '2.5.6': '2.5.6 Concurrent Input Mechanisms',
+            '2.5.7': '2.5.7 Dragging Movements',
+            '3.1.1': '3.1.1 Language of Page',
+            '3.2.3': '3.2.3 Consistent Navigation',
+            '3.3.2': '3.3.2 Labels or Instructions',
+            '3.3.3': '3.3.3 Error Suggestion',
+            '3.3.4': '3.3.4 Error Prevention (Legal, Financial, Data)',
+            '4.1.2': '4.1.2 Name, Role, Value',
+            '302.2': '302.2 Vision',
+            '302.3': '302.3 Vision',
+            '302.4': '302.4 Mobility',
+            '302.8': '302.8 Seizures',
+            '302.9': '302.9 Cognition',
+            '402.2': '402.2 Assistive Technology',
+            '502.2': '502.2 Title frames and pages',
+            '502.3': '502.3 Flashing',
+            '502.5': '502.5 Object information'
+        };
+
+        // === SUPPORT PATTERNS ===
+        const SUPPORT_PATTERNS = [
+            // Highest priority: Does Not Support. Allow flexible whitespace between words.
+            { pattern: /\bDoes\s+Not\s+Support\b/i, level: 'Does Not Support', priority: 1 },
+            { pattern: /\bNot\s+Supported?\b/i, level: 'Does Not Support', priority: 1 },
+            { pattern: /\bFails?\b/i, level: 'Does Not Support', priority: 1 },
+            
+            // High priority: Partially Supports. Allow variations like "Partially supports" or "Partial"
+            { pattern: /\bPartially\s+Supports?\b/i, level: 'Partially Supports', priority: 2 },
+            { pattern: /\bPartial\b/i, level: 'Partially Supports', priority: 2 },
+            { pattern: /\bLimited\s+Support\b/i, level: 'Partially Supports', priority: 2 },
+            
+            // Lower priority: Not Applicable. Also match common abbreviations
+            { pattern: /\bNot\s+Applicable\b|\bN\/?A\b/i, level: 'Not Applicable', priority: 4 },
+            { pattern: /\b(Does not apply)\b/i, level: 'Not Applicable', priority: 4 },
+
+            // Lower priority: Not Evaluated (also not to override support)
+            { pattern: /\b(Not Evaluated)\b/i, level: 'Not Evaluated', priority: 4 },
+            { pattern: /\b(Not Tested)\b/i, level: 'Not Evaluated', priority: 4 },
+
+            // Medium-low priority: Supports (prefer over Not Applicable/Not Evaluated)
+            { pattern: /\b(Fully Supports?)\b/i, level: 'Supports', priority: 3 },
+            { pattern: /\b(Supports?)\b/i, level: 'Supports', priority: 3 },
+            { pattern: /\b(Compliant)\b/i, level: 'Supports', priority: 3 }
+        ];
+
+        // === INITIALIZATION ===
+        function initializeApp() {
+            console.log('🚀 Initializing VPAT Analyzer...');
+            
+            try {
+                // Load dark mode preference
+                loadDarkModePreference();
+
+                // Setup file upload handlers
+                setupFileUpload();
+
+                // Initialize AI mode indicator based on checkbox state
+                updateAiModeIndicator();
+                const aiCheckbox = document.getElementById('useAIVision');
+                if (aiCheckbox) {
+                    aiCheckbox.addEventListener('change', updateAiModeIndicator);
+                }
+
+                console.log('✅ Application initialized successfully');
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                showError('Failed to initialize application. Please refresh the page.');
+            }
+        }
+
+        function setupFileUpload() {
+            console.log('📁 Setting up file upload handlers...');
+            
+            try {
+                const fileInput = document.getElementById('fileInput');
+                const uploadZone = document.getElementById('uploadZone');
+                
+                if (!fileInput || !uploadZone) {
+                    throw new Error('File input or upload zone not found');
+                }
+                
+                // File input change event
+                fileInput.addEventListener('change', function(event) {
+                    console.log('📁 File input changed');
+                    handleFileSelect(event.target.files[0]);
+                });
+                
+                // Upload zone click event
+                uploadZone.addEventListener('click', function() {
+                    console.log('📁 Upload zone clicked');
+                    fileInput.click();
+                });
+                
+                // Drag and drop events
+                uploadZone.addEventListener('dragover', function(event) {
+                    event.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+                
+                uploadZone.addEventListener('dragleave', function(event) {
+                    event.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                });
+                
+                uploadZone.addEventListener('drop', function(event) {
+                    event.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    const files = event.dataTransfer.files;
+                    if (files.length > 0) {
+                        handleFileSelect(files[0]);
+                    }
+                });
+                
+                console.log('✅ File upload handlers configured');
+            } catch (error) {
+                console.error('❌ Failed to setup file upload:', error);
+            }
+        }
+
+        // === FILE HANDLING ===
+        function handleFileSelect(file) {
+            console.log('📁 File selected:', file ? file.name : 'null');
+            
+            try {
+                if (!file) {
+                    console.log('❌ No file provided');
+                    return;
+                }
+                
+                if (file.type !== 'application/pdf') {
+                    console.log('❌ Invalid file type:', file.type);
+                    showError('Please select a PDF file.');
+                    return;
+                }
+                
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    console.log('❌ File too large:', formatFileSize(file.size));
+                    showError('File size must be less than 10MB.');
+                    return;
+                }
+                
+                uploadedFile = file;
+                
+                // Update upload zone
+                const uploadZone = document.getElementById('uploadZone');
+                if (uploadZone) {
+                    uploadZone.innerHTML = `
+                        <div class="upload-icon">✅</div>
+                        <div class="upload-text">File selected successfully</div>
+                        <div class="upload-subtext">Click "Analyze Now" to process</div>
+                    `;
+                    uploadZone.classList.add('file-selected');
+                }
+                
+                // Show file display
+                const fileDisplay = document.getElementById('fileDisplay');
+                const fileName = document.getElementById('fileName');
+                const fileSize = document.getElementById('fileSize');
+                
+                if (fileDisplay && fileName && fileSize) {
+                    fileName.textContent = `📄 Uploaded: ${file.name}`;
+                    fileSize.textContent = `Size: ${formatFileSize(file.size)}`;
+                    fileDisplay.classList.add('show');
+                }
+                
+                console.log('✅ File handling complete');
+            } catch (error) {
+                console.error('❌ Error handling file:', error);
+                showError('Error handling file: ' + error.message);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // === ANALYSIS FUNCTIONS ===
+        function startAnalysis() {
+            console.log('🔍 startAnalysis() called');
+            
+            try {
+                hideError();
+                
+                const fileInput = document.getElementById('fileInput');
+                const textInput = document.getElementById('textInput');
+                
+                if (!fileInput || !textInput) {
+                    throw new Error('Input elements not found');
+                }
+                
+                const hasFile = fileInput.files && fileInput.files[0];
+                const hasText = textInput.value && textInput.value.trim();
+                
+                if (!hasFile && !hasText) {
+                    console.log('❌ No input provided');
+                    showError('Please upload a PDF file or paste VPAT content manually.');
+                    return;
+                }
+                
+                // Determine whether to use AI parsing or local parsing
+                const aiCheckbox = document.getElementById('useAIVision');
+                const useAI = aiCheckbox && aiCheckbox.checked;
+                // Update the AI mode indicator before starting analysis
+                updateAiModeIndicator();
+                isAIUsed = false;
+                showLoading('Preparing analysis...');
+                // Reset progress bar
+                updateLoadingProgress(0);
+                // Hide any previously shown raw output
+                hideRawOutput();
+                if (useAI) {
+                    // Use AI-powered parsing via backend
+                    if (hasFile) {
+                        console.log('🤖 Sending PDF to AI:', fileInput.files[0].name);
+                        processAIFile(fileInput.files[0]);
+                    } else {
+                        console.log('🤖 Sending manual text to AI');
+                        processAIText(textInput.value.trim());
+                    }
+                } else {
+                    // Use local parsing
+                    if (hasFile) {
+                        console.log('📄 Processing PDF file locally:', fileInput.files[0].name);
+                        processPDFFile(fileInput.files[0]);
+                    } else {
+                        console.log('📝 Processing manual text locally');
+                        processManualText(textInput.value.trim());
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Error in startAnalysis():', error);
+                hideLoading();
+                showError('Analysis failed: ' + error.message);
+            }
+        }
+
+        async function processPDFFile(file) {
+            try {
+                console.log('📄 Starting PDF processing...');
+                showLoading('Extracting text from PDF...');
+                
+                const extractedText = await extractTextFromPDF(file);
+                console.log(`✅ PDF text extracted. Length: ${extractedText.length} characters`);
+                console.log('📄 Text preview:', extractedText.substring(0, 300) + '...');
+                
+                if (extractedText.length < 50) {
+                    throw new Error('Extracted text too short. This might be a scanned PDF.');
+                }
+                
+                await processExtractedText(extractedText);
+                
+            } catch (error) {
+                console.error('❌ PDF processing failed:', error);
+                hideLoading();
+                showError(`Failed to process PDF: ${error.message}. Try pasting the content manually.`);
+            }
+        }
+
+        async function processManualText(text) {
+            try {
+                console.log('📝 Processing manual text...');
+                await processExtractedText(text);
+            } catch (error) {
+                console.error('❌ Manual text processing failed:', error);
+                hideLoading();
+                showError('Failed to process text: ' + error.message);
+            }
+        }
+
+        async function processExtractedText(text) {
+            try {
+                showLoading('Parsing VPAT content...');
+                
+                console.log('🔍 Starting VPAT parsing...');
+                const parsedStandards = parseVPATText(text);
+                console.log(`✅ Found ${parsedStandards.length} standards:`, parsedStandards);
+                
+                if (parsedStandards.length === 0) {
+                    throw new Error('No WCAG or Section 508 standards found in the document.');
+                }
+                
+                showLoading('Organizing results...');
+                
+                const organizedResults = organizeByUserGroups(parsedStandards);
+                console.log('📊 Results organized by user groups:', organizedResults);
+                
+                hideLoading();
+                // Local parsing always sets AI used to false
+                isAIUsed = false;
+                displayCategorizedResults(organizedResults, false);
+                
+            } catch (error) {
+                console.error('❌ Text processing failed:', error);
+                hideLoading();
+                showError(error.message);
+            }
+        }
+
+        // === PDF EXTRACTION ===
+        async function extractTextFromPDF(file) {
+            console.log('📄 extractTextFromPDF() starting...');
+            
+            try {
+                if (typeof pdfjsLib === 'undefined') {
+                    throw new Error('PDF.js library not loaded');
+                }
+                
+                const arrayBuffer = await file.arrayBuffer();
+                console.log('📄 File converted to array buffer');
+                
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                console.log(`📄 PDF loaded. Pages: ${pdf.numPages}`);
+                
+                let fullText = '';
+                
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    try {
+                        console.log(`📄 Processing page ${pageNum}/${pdf.numPages}...`);
+                        const page = await pdf.getPage(pageNum);
+                        const textContent = await page.getTextContent();
+                        
+                        const pageText = textContent.items
+                            .map(item => item.str)
+                            .join(' ');
+                        
+                        fullText += pageText + '\n';
+                        console.log(`📄 Page ${pageNum} processed. Length: ${pageText.length}`);
+                        
+                    } catch (pageError) {
+                        console.warn(`⚠️ Error on page ${pageNum}:`, pageError);
+                    }
+                }
+                
+                console.log(`✅ PDF extraction complete. Total length: ${fullText.length}`);
+                return fullText.trim();
+                
+            } catch (error) {
+                console.error('❌ PDF extraction error:', error);
+                throw new Error(`PDF extraction failed: ${error.message}`);
+            }
+        }
+
+        // === VPAT PARSING ===
+        function parseVPATText(text) {
+            console.log('🔍 parseVPATText() starting...');
+            
+            try {
+                const foundStandards = [];
+                const allStandardIds = Object.keys(ALL_STANDARDS);
+
+                // Some VPAT documents include introductory sections (report title, contact
+                // info, evaluation methods) before the actual tables of success
+                // criteria. These sections often contain the same numeric patterns as
+                // standard IDs and can confuse the parser by capturing irrelevant
+                // content as comments. To mitigate this, trim the text so that
+                // parsing begins at the first occurrence of the success criteria.
+                let relevantText = text;
+                // Try to find the first table heading (e.g., "Table 1: Success Criteria")
+                const tableStartRegex = /Table\s*1[^\n]{0,40}Success Criteria/i;
+                let idx = relevantText.search(tableStartRegex);
+                // If not found, fall back to the first success criteria ID (1.1.1) to begin parsing
+                if (idx < 0) {
+                    const firstCriterionIdx = relevantText.search(/\b1\.1\.1\b/);
+                    if (firstCriterionIdx >= 0) {
+                        idx = firstCriterionIdx;
+                    }
+                }
+                if (idx >= 0) {
+                    relevantText = relevantText.substring(idx);
+                }
+                
+                // Clean text and handle common VPAT formatting
+                const cleanedText = relevantText
+                    .replace(/\s+/g, ' ')
+                    .replace(/[^\x20-\x7E\n]/g, ' ')
+                    .replace(/\t/g, ' ')
+                    .trim();
+                
+                console.log('🔍 Searching for standards in text...');
+                console.log('📄 Text sample:', cleanedText.substring(0, 500) + '...');
+                
+                // Enhanced standard detection with flexible patterns
+                for (const standardId of allStandardIds) {
+                    // Try multiple approaches to find the standard
+                    let result = findStandardInText(standardId, cleanedText);
+                    
+                    // If not found, try with more flexible patterns
+                    if (!result) {
+                        result = findStandardFlexible(standardId, cleanedText);
+                    }
+                    
+                    if (result) {
+                        foundStandards.push(result);
+                        console.log(`✅ Found: ${standardId} - ${result.supportLevel} - ${result.comments.substring(0, 50)}...`);
+                    }
+                }
+                
+                console.log(`🔍 Parsing complete. Found ${foundStandards.length} standards total`);
+                
+                // Add preview logging for debugging
+                if (foundStandards.length > 0) {
+                    console.log('📊 Standards summary:');
+                    foundStandards.forEach(std => {
+                        console.log(`  • ${std.name}: ${std.supportLevel}`);
+                    });
+                } else {
+                    console.log('⚠️ No standards detected. Checking for common patterns...');
+                    // Check if text contains any support level indicators
+                    const supportLevelTest = /(supports|partially|does not|not applicable|not evaluated)/gi;
+                    const supportMatches = cleanedText.match(supportLevelTest);
+                    console.log('🔍 Support level indicators found:', supportMatches ? supportMatches.length : 0);
+                    
+                    // Check if text contains any standard-like numbers
+                    const standardTest = /\b\d+\.\d+\.\d+\b(?!\.)|\b30[2-5]\.\d+\b/gi;
+                    const standardMatches = cleanedText.match(standardTest);
+                    console.log('🔍 Standard-like patterns found:', standardMatches ? standardMatches.slice(0, 10) : 'none');
+                }
+                
+                // Final pass: attempt to capture remarks/explanations for standards that lack meaningful comments.
+                try {
+                    const fallbackText = cleanedText;
+                    for (const std of foundStandards) {
+                        if (!std.comments || std.comments === 'No additional comments found.' || std.comments.length < 5) {
+                            const idPattern = escapeRegExp(std.id);
+                            // Build a loose pattern: standard ID followed by support level and some text.
+                            // Use non-greedy match to capture remarks up to the next standard ID.
+                            const level = std.supportLevel ? std.supportLevel.toLowerCase().replace(/\s+/g, '\\s+') : '';
+                            const regex = new RegExp(idPattern + '\\s+[^\n]{0,40}' + level + '\\s+([^\n]{10,400})', 'i');
+                            const match = fallbackText.match(regex);
+                            if (match && match[1]) {
+                                let comment = match[1].trim();
+                                // Trim off any subsequent standard ID that may appear in the captured text
+                                const nextStdMatch = comment.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+                                if (nextStdMatch) {
+                                    comment = comment.substring(0, nextStdMatch.index).trim();
+                                }
+                                // Remove trailing table headers or extraneous words
+                                comment = comment.replace(/^(Remarks? and Explanations?[:]?)/i, '').trim();
+                                // If comment still looks meaningful, update the standard's comments
+                                if (comment && comment.length > 5) {
+                                    // Ensure the comment ends with a period
+                                    if (!/[.!?]$/.test(comment)) {
+                                        comment += '.';
+                                    }
+                                    std.comments = comment;
+                                }
+                            }
+                        }
+                    }
+                } catch (fallbackErr) {
+                    console.warn('⚠️ Fallback remarks extraction failed:', fallbackErr);
+                }
+
+                return foundStandards;
+                
+            } catch (error) {
+                console.error('❌ VPAT parsing error:', error);
+                throw new Error('VPAT parsing failed: ' + error.message);
+            }
+        }
+
+        // Enhanced flexible standard finder
+        function findStandardFlexible(standardId, fullText) {
+            try {
+                // More flexible patterns for standards that might be formatted differently
+                const flexiblePatterns = [
+                    // Basic patterns
+                    new RegExp(`\\b${escapeRegExp(standardId)}\\b`, 'gi'),
+                    // With surrounding whitespace/punctuation
+                    new RegExp(`[\\s\\-\\|]*${escapeRegExp(standardId)}[\\s\\-\\|]*`, 'gi'),
+                    // In table format
+                    new RegExp(`${escapeRegExp(standardId)}[\\s]*[\\-\\|]*[\\s]*\\w+`, 'gi'),
+                ];
+                
+                for (const pattern of flexiblePatterns) {
+                    const matches = [...fullText.matchAll(pattern)];
+                    
+                    for (const match of matches) {
+                        const matchIndex = match.index;
+                        // Focused context for better table row detection
+                        const contextStart = Math.max(0, matchIndex - 200);
+                        const contextEnd = Math.min(fullText.length, matchIndex + 1000);
+                        const context = fullText.substring(contextStart, contextEnd);
+                        
+                        console.log(`🔍 Flexible search for ${standardId}:`, context.substring(0, 150) + '...');
+                        
+                        // Look for support levels in broader context
+                        const supportResult = findSupportLevelFlexible(context, standardId);
+                        
+                        if (supportResult) {
+                            // Use better comment extraction for flexible matches too
+                            const comments = extractBetterComments(fullText, standardId, matchIndex, supportResult) || 
+                                           extractCommentsAdvanced(context, standardId, supportResult);
+                            
+                            console.log(`✅ Flexible match: ${standardId} - ${supportResult.level} - ${comments ? comments.substring(0, 100) + '...' : 'No comments'}`);
+                            
+                            return {
+                                id: standardId,
+                                name: ALL_STANDARDS[standardId] || standardId,
+                                supportLevel: supportResult.level,
+                                comments: comments || 'No additional comments found.',
+                                confidence: supportResult.confidence - 10 // Lower confidence for flexible matches
+                            };
+                        }
+                    }
+                }
+                
+                return null;
+                
+            } catch (error) {
+                console.error(`❌ Flexible search error for ${standardId}:`, error);
+                return null;
+            }
+        }
+
+        function findSupportLevelFlexible(context, standardId) {
+            try {
+                const findings = [];
+                
+                // Look for support patterns anywhere in the context
+                const supportTexts = [
+                    'supports',
+                    'partially supports', 
+                    'does not support',
+                    'not applicable',
+                    'not evaluated',
+                    'not supported',
+                    'partial',
+                    'n/a',
+                    'compliant',
+                    'non-compliant'
+                ];
+                
+                for (const supportText of supportTexts) {
+                    const regex = new RegExp(`\\b${escapeRegExp(supportText)}\\b`, 'gi');
+                    const matches = [...context.matchAll(regex)];
+                    
+                    for (const match of matches) {
+                        let level = 'Not Evaluated';
+                        let priority = 5;
+                        
+                        const matchText = match[0].toLowerCase();
+                        if (matchText.includes('does not') || matchText.includes('non-compliant')) {
+                            level = 'Does Not Support';
+                            priority = 1;
+                        } else if (matchText.includes('partially') || matchText.includes('partial')) {
+                            level = 'Partially Supports';
+                            priority = 2;
+                        } else if (matchText.includes('supports') || matchText.includes('compliant')) {
+                            // Treat supports/compliant better than not applicable
+                            level = 'Supports';
+                            priority = 3;
+                        } else if (matchText.includes('not applicable') || matchText.includes('n/a')) {
+                            level = 'Not Applicable';
+                            priority = 4;
+                        } else if (matchText.includes('not evaluated')) {
+                            level = 'Not Evaluated';
+                            priority = 4;
+                        }
+                        
+                        const distance = Math.abs(match.index - context.indexOf(standardId));
+                        let confidence = Math.max(0, 200 - distance);
+                        
+                        // Priority boost
+                        confidence += (5 - priority) * 20;
+                        
+                        findings.push({
+                            level: level,
+                            confidence: confidence,
+                            position: match.index,
+                            priority: priority,
+                            matchText: match[0]
+                        });
+                    }
+                }
+                
+                findings.sort((a, b) => {
+                    if (b.confidence !== a.confidence) {
+                        return b.confidence - a.confidence;
+                    }
+                    return a.priority - b.priority;
+                });
+                
+                return findings[0] || null;
+                
+            } catch (error) {
+                console.error('❌ Flexible support level search error:', error);
+                return null;
+            }
+        }
+
+        function extractCommentsFlexible(context, standardId, supportResult) {
+            try {
+                return extractCommentsAdvanced(context, standardId, supportResult);
+            } catch (error) {
+                console.error('❌ Flexible comment extraction error:', error);
+                return null;
+            }
+        }
+
+        // Advanced comment extraction for better VPAT parsing
+        function extractCommentsAdvanced(context, standardId, supportResult) {
+            try {
+                console.log(`🔍 Advanced extraction for ${standardId}`);
+                
+                // Find the standard position in context
+                const standardPos = context.toLowerCase().indexOf(standardId.toLowerCase());
+                if (standardPos === -1) {
+                    return null;
+                }
+                
+                // Strategy: Look for the "Remarks and Explanations" column content
+                // This is typically after the support level and before the next standard
+                
+                const supportIndex = supportResult.position;
+                const supportText = supportResult.matchText;
+                
+                // Start looking for comments after the support level
+                let searchStart = Math.max(standardPos, supportIndex + supportText.length);
+                
+                // Define where to stop looking - at the next standard or reasonable boundaries
+                const remainingText = context.substring(searchStart);
+                
+                // Find the next occurrence of a standard pattern
+                const nextStandardPattern = /\b(?:\d+\.\d+\.\d+)(?!\.)|\b30[2-5]\.\d+/;
+                const nextStandardMatch = remainingText.search(nextStandardPattern);
+                
+                let commentText;
+                if (nextStandardMatch > 20) {
+                    // Extract text up to the next standard
+                    commentText = remainingText.substring(0, nextStandardMatch);
+                } else {
+                    // Take a reasonable chunk if no clear boundary
+                    commentText = remainingText.substring(0, Math.min(500, remainingText.length));
+                }
+                
+                console.log(`🔍 Raw comment text for ${standardId}:`, commentText.substring(0, 150) + '...');
+                
+                // Clean up the extracted text
+                let cleanedComments = commentText;
+
+                // Remove common table artifacts and noise
+                const cleanupPatterns = [
+                    // Remove level indicators if they appear at the start
+                    /^(Level\s+A{1,3}|\(Level\s+A{1,3}[^)]*\))/gi,
+                    // Remove table separators
+                    /[\|\t]/g,
+                    // Remove excessive whitespace
+                    /\s{3,}/g,
+                    // Remove line breaks at boundaries  
+                    /^\s*[\r\n]+|[\r\n]+\s*$/g,
+                    // Remove lines containing contact or evaluation information
+                    /Contact\s+Information\s*:[^\.]*\./gi,
+                    /Evaluation\s+Methods\s+Used\s*:[^\.]*\./gi,
+                    /Report\s+Date\s*:[^\.]*\./gi
+                ];
+                
+                for (const pattern of cleanupPatterns) {
+                    if (pattern === /\s{3,}/g) {
+                        cleanedComments = cleanedComments.replace(pattern, ' ');
+                    } else if (pattern === /[\|\t]/g) {
+                        cleanedComments = cleanedComments.replace(pattern, ' ');
+                    } else {
+                        cleanedComments = cleanedComments.replace(pattern, '');
+                    }
+                }
+                
+                // Normalize whitespace and trim
+                cleanedComments = cleanedComments
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                
+                // Remove leading/trailing punctuation or separators
+                cleanedComments = cleanedComments
+                    .replace(/^[-:;,.\s]+/, '')
+                    .replace(/[-:;,.\s]+$/, '');
+                
+                // Look for actual sentence content - should start with a capital letter or common phrase
+                const sentences = cleanedComments.split(/[.!?]+/).filter(sentence => {
+                    const trimmed = sentence.trim();
+                    // Keep sentences that are substantive
+                    return trimmed.length > 15 && 
+                           /^[A-Z]/.test(trimmed) && // Starts with capital
+                           /[a-zA-Z]{3,}/.test(trimmed) && // Has meaningful words
+                           !/^(page|table|column|row|see|refer|note|\d+)$/i.test(trimmed); // Not just references
+                });
+                
+                if (sentences.length > 0) {
+                    // Join the first 2-3 meaningful sentences
+                    cleanedComments = sentences.slice(0, 3).join('. ').trim();
+                    if (cleanedComments && !cleanedComments.endsWith('.')) {
+                        cleanedComments += '.';
+                    }
+                } else {
+                    // Fallback: take the cleaned text if it looks reasonable
+                    if (cleanedComments.length < 15 || cleanedComments.length > 600) {
+                        return null;
+                    }
+                }
+                
+                // Final validation
+                if (!cleanedComments || cleanedComments.length < 15) {
+                    console.log(`⚠️ Comments too short for ${standardId}: "${cleanedComments}"`);
+                    return null;
+                }
+                
+                console.log(`✅ Cleaned comments for ${standardId}:`, cleanedComments);
+                return cleanedComments;
+                
+            } catch (error) {
+                console.error('❌ Advanced comment extraction error:', error);
+                return null;
+            }
+        }
+
+        function findStandardInText(standardId, fullText) {
+            try {
+                // Standard variations to search for
+                const variations = [
+                    standardId,
+                    `SC ${standardId}`,
+                    `Success Criterion ${standardId}`,
+                    `WCAG ${standardId}`,
+                    `${standardId}:`,
+                    `${standardId} `,
+                    `${standardId}.`,
+                    `Section ${standardId}`
+                ];
+                
+                let bestMatch = null;
+                let highestConfidence = 0;
+                
+                for (const variation of variations) {
+                    const regex = new RegExp(escapeRegExp(variation), 'gi');
+                    const matches = [...fullText.matchAll(regex)];
+                    
+                    for (const match of matches) {
+                        const matchIndex = match.index;
+                        // Skip matches that appear inside a longer numeric identifier (e.g., "1.3.1" inside "5.1.3.1").
+                        const before = matchIndex > 0 ? fullText[matchIndex - 1] : ' ';
+                        const afterIndex = matchIndex + variation.length;
+                        const after = afterIndex < fullText.length ? fullText[afterIndex] : ' ';
+                        if (/[0-9.]/.test(before) || after === '.') {
+                            // Ignore this match as it is embedded within a larger numeric sequence
+                            continue;
+                        }
+                        // Use more focused context - closer to table row size
+                        const contextStart = Math.max(0, matchIndex - 100);
+                        // Expand the context window to capture long VPAT rows. Some
+                        // success-criterion rows contain many references and multiple
+                        // columns before the "Web:" status appears, which can exceed
+                        // 800 characters. Increase the window to 2000 characters
+                        // beyond the match to ensure the "Web" column is included.
+                        const contextEnd = Math.min(fullText.length, matchIndex + 2000);
+                        const context = fullText.substring(contextStart, contextEnd);
+                        console.log(`🔍 Checking context for ${standardId}:`, context.substring(0, 200) + '...');
+                        const supportLevelResult = findSupportLevelInContext(context, variation);
+                        if (supportLevelResult) {
+                            const comments = extractBetterComments(fullText, standardId, matchIndex, supportLevelResult);
+                            const confidence = supportLevelResult.confidence;
+                            console.log(`✅ Found: ${standardId} - ${supportLevelResult.level} - ${comments ? comments.substring(0, 100) + '...' : 'No comments'}`);
+                            if (confidence > highestConfidence) {
+                                highestConfidence = confidence;
+                                bestMatch = {
+                                    id: standardId,
+                                    name: ALL_STANDARDS[standardId] || standardId,
+                                    supportLevel: supportLevelResult.level,
+                                    comments: comments || 'No additional comments found.',
+                                    confidence: confidence
+                                };
+                            }
+                        }
+                    }
+                }
+                
+                return bestMatch;
+                
+            } catch (error) {
+                console.error(`❌ Error finding standard ${standardId}:`, error);
+                return null;
+            }
+        }
+
+        // Better comment extraction focused on VPAT table structure
+        function extractBetterComments(fullText, standardId, standardIndex, supportResult) {
+            try {
+                // Strategy: Find the table row containing this standard and extract the "Remarks" column
+                
+                // Find the line containing the standard
+                let lineStart = standardIndex;
+                let lineEnd = standardIndex;
+                
+                // Go backwards to find line start
+                while (lineStart > 0 && fullText[lineStart] !== '\n' && fullText[lineStart] !== '\r') {
+                    lineStart--;
+                }
+                if (fullText[lineStart] === '\n' || fullText[lineStart] === '\r') {
+                    lineStart++;
+                }
+                
+                // Go forwards to find the end of this table row
+                // Look for the next standard or significant line break
+                let searchPos = standardIndex + 50; // Start search after the standard
+                let foundNextStandard = false;
+                
+                while (searchPos < fullText.length) {
+                    // Check for next standard. Only match 3-part IDs that start at a
+                    // whitespace or line boundary to avoid matching inside longer IDs
+                    const segment = fullText.substring(searchPos, searchPos + 40);
+                    const nextStandardMatch = segment.match(/(^|\s)\d+\.\d+\.\d+\b(?!\.\d)|\b30[2-5]\.\d+\b/);
+                    if (nextStandardMatch) {
+                        lineEnd = searchPos + nextStandardMatch.index;
+                        foundNextStandard = true;
+                        break;
+                    }
+                    
+                    // Check for table separator patterns
+                    if (fullText.substring(searchPos, searchPos + 10).match(/\n\s*\n|\n.*\|\s*\|/)) {
+                        lineEnd = searchPos;
+                        break;
+                    }
+                    
+                    searchPos++;
+                    
+                    // Safety limit
+                    if (searchPos - standardIndex > 1000) {
+                        lineEnd = standardIndex + 1000;
+                        break;
+                    }
+                }
+                
+                const rowText = fullText.substring(lineStart, lineEnd);
+                console.log(`🔍 Row text for ${standardId}:`, rowText.substring(0, 300) + '...');
+                
+                // Extract the comment portion by removing the standard and support level
+                let commentText = rowText;
+                
+                // Remove the standard reference
+                commentText = commentText.replace(new RegExp(`\\b${escapeRegExp(standardId)}[^a-zA-Z]*`, 'gi'), ' ');
+                
+                // Remove support level indicators
+                const supportLevels = ['supports', 'partially supports', 'does not support', 'not applicable', 'not evaluated'];
+                for (const level of supportLevels) {
+                    commentText = commentText.replace(new RegExp(`\\b${escapeRegExp(level)}\\b`, 'gi'), ' ');
+                }
+                
+                // Remove common table headers and artifacts
+                commentText = commentText
+                    .replace(/\b(level\s+a{1,3}|conformance\s+level|criteria|criterion|remarks?\s+and\s+explanations?)\b/gi, ' ')
+                    .replace(/[\|\t]/g, ' ')  // Remove table separators
+                    .replace(/\s{2,}/g, ' ')  // Normalize spacing
+                    .replace(/^\s*[-:;,.\s]+/, '')  // Remove leading punctuation
+                    .replace(/\s*[-:;,.\s]+$/, '')  // Remove trailing punctuation
+                    .trim();
+                
+                // Extract meaningful sentences
+                const sentences = commentText.split(/[.!?]+/).filter(sentence => {
+                    const trimmed = sentence.trim();
+                    if (!trimmed || trimmed.length <= 20) return false;
+                    // Skip sentences that contain contact information or evaluation notes
+                    if (/contact information|@|evaluation methods|report date|\bnotes?:/i.test(trimmed)) return false;
+                    // Must start with a capital letter and contain words
+                    if (!/^[A-Z]/.test(trimmed)) return false;
+                    if (!/[a-zA-Z]{5,}/.test(trimmed)) return false;
+                    // Filter out trivial directives
+                    if (/^(see|refer|note|table|column|row|page|\d+)$/i.test(trimmed)) return false;
+                    return true;
+                });
+                
+                if (sentences.length > 0) {
+                    let result = sentences.slice(0, 3).join('. ').trim();
+                    if (result && !result.endsWith('.')) {
+                        result += '.';
+                    }
+                    
+                    // Final length check
+                    if (result.length >= 20 && result.length <= 500) {
+                        console.log(`✅ Better comments for ${standardId}:`, result);
+                        return result;
+                    }
+                }
+                
+                return null;
+                
+            } catch (error) {
+                console.error('❌ Better comment extraction error:', error);
+                return null;
+            }
+        }
+
+        function findSupportLevelInContext(context, standardVariation) {
+            try {
+                // Restrict the search to the text belonging to this particular standard row.
+                // Many VPAT tables list multiple criteria in one large context window; we only
+                // want to examine the portion of the text between this criterion and the next
+                // criterion identifier (e.g., "2.1.2" following "2.1.1").  This prevents
+                // statuses from adjacent rows from influencing the result.
+                let rowSegment = context;
+                if (standardVariation) {
+                    const lowerCtx = context.toLowerCase();
+                    const lowerVar = String(standardVariation).toLowerCase();
+                    const varIndex = lowerCtx.indexOf(lowerVar);
+                    if (varIndex !== -1) {
+                        // Slice from the criterion to the end of the context. We'll trim
+                        // to the next criterion occurrence.
+                        const after = context.substring(varIndex);
+                        // Match the next criterion only if it appears at a whitespace or line boundary
+                        const nextMatch = after.match(/(^|\s)\d+\.\d+\.\d+\b(?!\.\d)|\b30[2-5]\.\d+\b/);
+                        if (nextMatch) {
+                            // The match index of the regex includes the preceding whitespace character
+                            // because of the leading group; adjust by nextMatch.index to slice correctly
+                            const idx = nextMatch.index + (nextMatch[1] ? nextMatch[1].length : 0);
+                            rowSegment = after.substring(0, idx);
+                        } else {
+                            rowSegment = after;
+                        }
+                    }
+                }
+
+                // Normalize whitespace in the row segment so that phrases split across
+                // line breaks (e.g., "Partially\nsupports") are detected correctly. Replace
+                // all sequences of whitespace with a single space for the upcoming checks.
+                const normalizedSegment = rowSegment.replace(/\s+/g, ' ');
+
+                // First try to detect the Web-specific conformance level. Many VPATs
+                // include multiple columns (Web, Electronic Docs, etc.), and the Web
+                // column is the most relevant for web applications. Look for
+                // "Web: <status>" in the row segment and return it immediately with high
+                // confidence. Restrict the match to common status keywords.
+                const webMatch = normalizedSegment.match(/web\s*:\s*(supports|partially supports|does not support|not applicable|not evaluated)/i);
+                if (webMatch) {
+                    const webLevelRaw = webMatch[1].toLowerCase();
+                    let level;
+                    if (/does\s+not/.test(webLevelRaw)) level = 'Does Not Support';
+                    else if (/partially/.test(webLevelRaw)) level = 'Partially Supports';
+                    else if (/supports/.test(webLevelRaw)) level = 'Supports';
+                    else if (/not\s+applicable/.test(webLevelRaw)) level = 'Not Applicable';
+                    else level = 'Not Evaluated';
+                    // High confidence and priority because it is explicitly the Web column
+                    let priority;
+                    switch (level) {
+                        case 'Does Not Support': priority = 1; break;
+                        case 'Partially Supports': priority = 2; break;
+                        case 'Supports': priority = 3; break;
+                        case 'Not Applicable': priority = 4; break;
+                        default: priority = 5; break;
+                    }
+                    return {
+                        level: level,
+                        confidence: (6 - priority) * 30 + 100,
+                        position: webMatch.index,
+                        priority: priority,
+                        matchText: webMatch[0]
+                    };
+                }
+                // If no explicit Web status, inspect all statuses present in the row segment.
+                const present = new Set();
+                for (const pattern of SUPPORT_PATTERNS) {
+                    const regex = new RegExp(pattern.pattern.source, 'i');
+                    if (regex.test(normalizedSegment)) {
+                        present.add(pattern.level);
+                    }
+                }
+                let level = null;
+                if (present.has('Does Not Support')) {
+                    level = 'Does Not Support';
+                } else if (present.has('Partially Supports')) {
+                    level = 'Partially Supports';
+                } else if (present.has('Supports')) {
+                    level = 'Supports';
+                } else if (present.has('Not Applicable')) {
+                    level = 'Not Applicable';
+                } else if (present.has('Not Evaluated')) {
+                    level = 'Not Evaluated';
+                }
+                if (!level) return null;
+                let priority;
+                switch (level) {
+                    case 'Does Not Support': priority = 1; break;
+                    case 'Partially Supports': priority = 2; break;
+                    case 'Supports': priority = 3; break;
+                    case 'Not Applicable': priority = 4; break;
+                    default: priority = 5; break;
+                }
+                const confidence = (6 - priority) * 25;
+                return {
+                    level: level,
+                    confidence: confidence,
+                    position: -1,
+                    priority: priority,
+                    matchText: level
+                };
+            } catch (error) {
+                console.error('❌ Error finding support level:', error);
+                return null;
+            }
+        }
+
+        function extractComments(context, standardVariation, supportLevelResult) {
+            try {
+                // Try better extraction first if we have enough context
+                if (context.length > 200) {
+                    const standardMatch = context.match(new RegExp(`\\b${escapeRegExp(standardVariation)}\\b`, 'i'));
+                    if (standardMatch) {
+                        const standardIndex = standardMatch.index;
+                        const betterComments = extractBetterComments(context, standardVariation, standardIndex, supportLevelResult);
+                        if (betterComments) {
+                            return betterComments;
+                        }
+                    }
+                }
+                
+                // Fallback to advanced extraction
+                const advancedComments = extractCommentsAdvanced(context, standardVariation, supportLevelResult);
+                if (advancedComments) {
+                    return advancedComments;
+                }
+                
+                // Final fallback to simpler extraction
+                const supportIndex = supportLevelResult.position;
+                let extractStart = supportIndex + 20; // Start after support level
+                let extractEnd = Math.min(context.length, extractStart + 300);
+                
+                let comments = context.substring(extractStart, extractEnd).trim();
+                
+                // Clean up
+                comments = comments
+                    .replace(/^[-–—:;,.\s]+/, '')
+                    .replace(/^(Remarks?|Comments?|Notes?)[:\s]*/i, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                
+                // Stop at next standard
+                const stopPattern = /(^|\s)\d+\.\d+\.\d+\b(?!\.\d)|\b30[2-5]\.\d+\b/;
+                const stopMatch = comments.match(stopPattern);
+                if (stopMatch && stopMatch.index > 10) {
+                    // Adjust index if match includes preceding whitespace
+                    const idx = stopMatch.index + (stopMatch[1] ? stopMatch[1].length : 0);
+                    comments = comments.substring(0, idx).trim();
+                }
+                
+                // Limit to 2-3 sentences
+                const sentences = comments.split(/[.!?]+/);
+                if (sentences.length > 3) {
+                    comments = sentences.slice(0, 3).join('.') + '.';
+                }
+                
+                return comments.substring(0, 200).trim() || null;
+                
+            } catch (error) {
+                console.error('❌ Error extracting comments:', error);
+                return null;
+            }
+        }
+
+        // === ORGANIZATION ===
+        function organizeByUserGroups(standards) {
+            console.log('📊 Organizing by user groups...');
+            
+            try {
+                // Remove duplicates first - keep the one with highest confidence or most recent
+                const deduplicatedStandards = [];
+                const seenStandards = new Map();
+                
+                for (const standard of standards) {
+                    const existing = seenStandards.get(standard.id);
+                    if (!existing) {
+                        // First time seeing this standard
+                        seenStandards.set(standard.id, standard);
+                    } else {
+                        // Decide which one to keep
+                        const existingConfidence = existing.confidence || 0;
+                        const newConfidence = standard.confidence || 0;
+                        
+                        // Prefer higher confidence, or if equal, prefer the newer one (later in array)
+                        if (newConfidence > existingConfidence) {
+                            console.log(`🔄 Replacing ${standard.id}: better confidence (${newConfidence} vs ${existingConfidence})`);
+                            seenStandards.set(standard.id, standard);
+                        } else if (newConfidence === existingConfidence) {
+                            console.log(`🔄 Replacing ${standard.id}: same confidence, using newer`);
+                            seenStandards.set(standard.id, standard);
+                        } else {
+                            console.log(`⚠️ Keeping existing ${standard.id}: better confidence (${existingConfidence} vs ${newConfidence})`);
+                        }
+                    }
+                }
+                
+                deduplicatedStandards.push(...seenStandards.values());
+                console.log(`📊 Deduplicated: ${standards.length} -> ${deduplicatedStandards.length} standards`);
+                
+                if (standards.length !== deduplicatedStandards.length) {
+                    console.log('📊 Removed duplicates:', standards.filter(s => !deduplicatedStandards.find(d => d.id === s.id)).map(s => s.id));
+                }
+                
+                const results = {};
+                
+                for (const [groupName, groupData] of Object.entries(USER_GROUP_MAPPING)) {
+                    const relevantStandards = deduplicatedStandards.filter(std => 
+                        groupData.standards.includes(std.id)
+                    );
+                    
+                    // Calculate accessibility rating
+                    let accessibility = 'Not Evaluated';
+                    if (relevantStandards.length > 0) {
+                        const hasDoesNotSupport = relevantStandards.some(s => s.supportLevel === 'Does Not Support');
+                        const hasPartiallySupports = relevantStandards.some(s => s.supportLevel === 'Partially Supports');
+                        const hasSupports = relevantStandards.some(s => s.supportLevel === 'Supports');
+                        const hasNotApplicable = relevantStandards.some(s => s.supportLevel === 'Not Applicable');
+                        
+                        if (hasDoesNotSupport) {
+                            accessibility = 'No';
+                        } else if (hasPartiallySupports) {
+                            accessibility = 'Partially';
+                        } else if (hasSupports || hasNotApplicable) {
+                            accessibility = 'Yes';
+                        }
+                    }
+                    
+                    results[groupName] = {
+                        accessibility: accessibility,
+                        description: groupData.description,
+                        standards: relevantStandards
+                    };
+                    
+                    console.log(`📊 ${groupName}: ${accessibility} (${relevantStandards.length} standards)`);
+                }
+                
+                return results;
+                
+            } catch (error) {
+                console.error('❌ Error organizing by user groups:', error);
+                throw new Error('Failed to organize results: ' + error.message);
+            }
+        }
+
+        // === AI PARSING AND DISPLAY FUNCTIONS ===
+
+        /**
+         * Attempt to parse loosely formatted AI output into a JavaScript object.
+         * The AI may return JSON-like structures without proper quotes or with single quotes.
+         * This function sanitizes common formatting issues and tries JSON.parse twice before failing.
+         * @param {string} raw - Raw text returned from the AI service.
+         * @returns {Object|null} Parsed object or null if parsing fails.
+         */
+        function parseAiOutput(raw) {
+            try {
+                if (!raw || typeof raw !== 'string') return null;
+                // Try parsing directly first
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    // Continue to sanitation
+                }
+                let sanitized = raw.trim();
+                // Replace smart quotes and backticks with standard quotes
+                sanitized = sanitized.replace(/[‘’‛“”]/g, '"');
+                // Replace single quotes with double quotes
+                sanitized = sanitized.replace(/'/g, '"');
+                // Remove trailing commas before closing braces/brackets
+                sanitized = sanitized.replace(/,\s*(}|])/g, '$1');
+                // Ensure keys are quoted
+                sanitized = sanitized.replace(/([\{,]\s*)([A-Za-z0-9_.-]+)\s*:/g, '$1"$2":');
+                // Attempt to parse again
+                try {
+                    return JSON.parse(sanitized);
+                } catch (e2) {
+                    console.warn('⚠️ Failed second JSON parse:', e2.message);
+                }
+                // At this point, attempt to parse line-based AI output. Many AI models return
+                // loose, human-readable lists formatted like:
+                //  1.1.1 Non-text Content - Supports - Images have alt text
+                //  302.2 Vision - Partially Supports - Relies on visual cues
+                // Each line contains an identifier, a human-friendly description, a support level
+                // and evaluator comments separated by hyphens. We'll split on " - " to extract
+                // the pieces. If parsing succeeds for at least one line, return an array
+                // of objects with id, name, support and comment fields.
+                const lines = raw.split(/\n|\r/);
+                const parsedLines = [];
+                for (let line of lines) {
+                    if (!line) continue;
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    // Ignore list markers like "- " or numbering prefixes
+                    const cleaned = trimmed.replace(/^[-•*]\s*/, '');
+                    // Split on hyphen surrounded by optional whitespace. Using split with limit
+                    // allows evaluator comments to contain hyphens.
+                    const parts = cleaned.split(/\s+-\s+/);
+                    if (parts.length >= 3) {
+                        const idDesc = parts[0].trim();
+                        const support = parts[1].trim();
+                        const comment = parts.slice(2).join(' - ').trim();
+                        // Separate id and description. The id is the first token consisting of
+                        // digits and dots. Everything after the id becomes the description.
+                        let id = null;
+                        let desc = '';
+                        const m = idDesc.match(/^([0-9.]+)\s+(.*)$/);
+                        if (m) {
+                            id = m[1];
+                            desc = m[2].trim();
+                        } else {
+                            // If no description provided, assume the entire string is the id
+                            id = idDesc;
+                            desc = '';
+                        }
+                        if (id) {
+                            parsedLines.push({
+                                id: id,
+                                name: desc,
+                                support: support,
+                                comment: comment,
+                                comments: comment
+                            });
+                        }
+                    }
+                }
+                if (parsedLines.length > 0) {
+                    return parsedLines;
+                }
+                return null;
+            } catch (error) {
+                console.error('❌ parseAiOutput error:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Map various AI-provided support strings into one of the expected support levels.
+         * Defaults to 'Not Evaluated' if no match is found.
+         * @param {string} value - Raw support text from AI.
+         * @returns {string} Normalized support level.
+         */
+        function mapSupportLevel(value) {
+            if (!value) return 'Not Evaluated';
+            const v = String(value).toLowerCase();
+            if (/does\s+not\s+support|not\s+supported|non\s*compliant/.test(v)) return 'Does Not Support';
+            if (/partially\s+supports|partial|limited/.test(v)) return 'Partially Supports';
+            if (/not\s+applicable|n\/a|does\s+not\s+apply/.test(v)) return 'Not Applicable';
+            if (/not\s+evaluated|not\s+tested/.test(v)) return 'Not Evaluated';
+            if (/supports|compliant/.test(v)) return 'Supports';
+            return 'Not Evaluated';
+        }
+
+        /**
+         * Convert the parsed AI object into an array of standard objects compatible with existing structure.
+         * Each returned object has id, name, supportLevel and comments.
+         * @param {Object|Array} aiData - Parsed AI data.
+         * @returns {Array} List of standard objects.
+         */
+        function convertAiResultsToStandards(aiData) {
+            const standards = [];
+            try {
+                if (!aiData) return standards;
+                if (Array.isArray(aiData)) {
+                    for (const item of aiData) {
+                        if (!item) continue;
+                        const id = item.id || item.standard || item.key || item.sc || null;
+                        if (!id) continue;
+                        const support = item.support || item.supportLevel || item.level || item.result || '';
+                        const comments = item.comment || item.comments || item.remarks || item.notes || '';
+                        // Prefer explicit name/description provided by the AI when available.
+                        const name = item.name || item.description || ALL_STANDARDS[id] || id;
+                        const supportLevel = mapSupportLevel(support);
+                        standards.push({ id: id, name: name, supportLevel: supportLevel, comments: comments || 'No additional comments found.' });
+                    }
+                } else if (typeof aiData === 'object') {
+                    for (const key of Object.keys(aiData)) {
+                        const value = aiData[key];
+                        const id = key;
+                        let support = '';
+                        let comments = '';
+                        if (value && typeof value === 'object') {
+                            support = value.support || value.supportLevel || value.level || value.result || '';
+                            comments = value.comment || value.comments || value.remarks || value.notes || '';
+                        } else if (typeof value === 'string') {
+                            // If the value itself is a string, attempt to extract support and comments
+                            const match = value.match(/(Supports|Partially\s+Supports|Does\s+Not\s+Support|Not\s+Applicable|Not\s+Evaluated)/i);
+                            if (match) support = match[1];
+                            comments = value;
+                        }
+                    // Prefer explicit name/description when provided in object value
+                    const explicitName = value && (value.name || value.description);
+                    const name = explicitName || ALL_STANDARDS[id] || id;
+                        const supportLevel = mapSupportLevel(support);
+                        standards.push({ id: id, name: name, supportLevel: supportLevel, comments: comments || 'No additional comments found.' });
+                    }
+                }
+            } catch (error) {
+                console.error('❌ convertAiResultsToStandards error:', error);
+            }
+            return standards;
+        }
+
+        /**
+         * Classify a standard identifier as either WCAG or Section 508.
+         * Standards with a numeric prefix >= 302 are considered Section 508.
+         * @param {string} id - Standard identifier (e.g., '1.1.1', '302.2').
+         * @returns {string} 'WCAG' or 'Section 508'.
+         */
+        function classifyStandard(id) {
+            try {
+                const prefix = String(id).split('.')[0];
+                const num = parseInt(prefix, 10);
+                if (!isNaN(num) && num >= 302) {
+                    return 'Section 508';
+                }
+                return 'WCAG';
+            } catch (error) {
+                console.error('❌ classifyStandard error:', error);
+                return 'WCAG';
+            }
+        }
+
+        /**
+         * Display results organized by categories and user groups in an editable table format.
+         * If AI parsing was used, includes a cautionary note. This function replaces the
+         * traditional card-based view with category-based tables for each user group.
+         * @param {Object} groupResults - Result of organizeByUserGroups().
+         * @param {boolean} fromAI - Whether the data originated from AI parsing.
+         */
+        function displayCategorizedResults(groupResults, fromAI = false) {
+            try {
+                currentResults = groupResults;
+                const resultsContainer = document.getElementById('results');
+                if (!resultsContainer) {
+                    throw new Error('Results container not found');
+                }
+                // Reset raw output container visibility
+                hideRawOutput();
+
+                // Compute unique standards count
+                const uniqueStandards = new Set();
+                Object.values(groupResults).forEach(g => {
+                    g.standards.forEach(s => uniqueStandards.add(s.id));
+                });
+                const totalGroups = Object.keys(groupResults).length;
+                const totalStandards = uniqueStandards.size;
+                const fullyAccessible = Object.values(groupResults).filter(g => g.accessibility === 'Yes').length;
+                const partiallyAccessible = Object.values(groupResults).filter(g => g.accessibility === 'Partially').length;
+                const notAccessible = Object.values(groupResults).filter(g => g.accessibility === 'No').length;
+                const notEvaluated = Object.values(groupResults).filter(g => g.accessibility === 'Not Evaluated').length;
+
+                let html = '';
+                if (fromAI) {
+                    html += `<div class="parsing-info ai-note"><strong>Parsed with AI – double check accuracy.</strong></div>`;
+                }
+                html += `<div class="parsing-info"><strong>📝 VPAT Analysis Complete:</strong> ${totalStandards} unique accessibility standards found and organized by disability user groups.</div>`;
+                
+                // --- Global summary (grade and pie chart) ---
+                // Aggregate support counts across all groups/standards
+                const supportCounts = { 'Supports': 0, 'Partially Supports': 0, 'Does Not Support': 0, 'Not Applicable': 0, 'Not Evaluated': 0 };
+                Object.values(groupResults).forEach(g => {
+                    g.standards.forEach(s => {
+                        const lvl = s.supportLevel || 'Not Evaluated';
+                        if (!supportCounts[lvl]) supportCounts[lvl] = 0;
+                        supportCounts[lvl]++;
+                    });
+                });
+                const totalEvaluated = Object.values(supportCounts).reduce((a, b) => a + b, 0);
+                const weightedScore = (supportCounts['Supports'] || 0) + 0.5 * (supportCounts['Partially Supports'] || 0);
+                    const ratio = totalEvaluated > 0 ? weightedScore / totalEvaluated : 0;
+                    let grade;
+                    if (ratio >= 0.9) grade = 'A';
+                    else if (ratio >= 0.75) grade = 'B';
+                    else if (ratio >= 0.5) grade = 'C';
+                    else grade = 'D';
+                // Create summary section HTML
+                html += `<div class="summary-wrapper">
+                    <div class="summary-info">
+                        <h3 class="summary-heading">Overall Summary</h3>
+                        <p class="summary-grade"><strong>Grade:</strong> ${grade}</p>
+                        <ul class="summary-counts">
+                            <li><span class="count-label">Supports:</span> ${supportCounts['Supports'] || 0}</li>
+                            <li><span class="count-label">Partially Supports:</span> ${supportCounts['Partially Supports'] || 0}</li>
+                            <li><span class="count-label">Does Not Support:</span> ${supportCounts['Does Not Support'] || 0}</li>
+                            <li><span class="count-label">Not Applicable:</span> ${supportCounts['Not Applicable'] || 0}</li>
+                            <li><span class="count-label">Not Evaluated:</span> ${supportCounts['Not Evaluated'] || 0}</li>
+                        </ul>
+                    </div>
+                    <div class="summary-chart-container">
+                        <canvas id="summaryChart" width="180" height="180" aria-label="Summary pie chart showing distribution of support levels" role="img"></canvas>
+                    </div>
+                </div>`;
+                // Stats grid reused from original design
+                html += `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${totalGroups}</div>
+                            <div class="stat-label">User Groups</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${fullyAccessible}</div>
+                            <div class="stat-label">✅ Fully Accessible</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${partiallyAccessible}</div>
+                            <div class="stat-label">🟡 Partially Accessible</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${notAccessible}</div>
+                            <div class="stat-label">🔴 Not Accessible</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${notEvaluated}</div>
+                            <div class="stat-label">❓ Not Evaluated</div>
+                        </div>
+                    </div>`;
+                html += `<div class="user-groups-grid">`;
+                // Precompute category assignments per group
+                const categories = { 'WCAG': {}, 'Section 508': {} };
+                for (const [groupName, groupData] of Object.entries(groupResults)) {
+                    for (const std of groupData.standards) {
+                        const cat = classifyStandard(std.id);
+                        if (!categories[cat][groupName]) {
+                            categories[cat][groupName] = { description: groupData.description, standards: [] };
+                        }
+                        categories[cat][groupName].standards.push(std);
+                    }
+                }
+                // Build each group card
+                for (const [groupName, groupData] of Object.entries(groupResults)) {
+                    const badgeClass = getBadgeClass(groupData.accessibility);
+                    const badgeIcon = getBadgeIcon(groupData.accessibility);
+                    const badgeText = getBadgeText(groupData.accessibility);
+                    let groupHtml = `<div class="user-group-card">`;
+                    groupHtml += `<div class="user-group-header"><h3 class="user-group-title">${groupName}</h3><div class="accessibility-badge ${badgeClass}">${badgeIcon} ${badgeText}</div></div>`;
+                    groupHtml += `<p class="user-group-description">${groupData.description}</p>`;
+                    // Append categories tables
+                    ['WCAG', 'Section 508'].forEach(catName => {
+                        const catData = categories[catName][groupName];
+                        if (catData && catData.standards.length > 0) {
+                            const catTitle = catName === 'WCAG' ? 'WCAG Standards' : 'Section 508 Standards';
+                            groupHtml += `<h4 class="category-title">${catTitle}</h4>`;
+                            groupHtml += `<table class="standards-table"><thead><tr><th>Success Criterion</th><th>Support Level</th><th>Evaluator Notes</th></tr></thead><tbody>`;
+                            for (const standard of catData.standards) {
+                                // Build dropdown options
+                                const options = [
+                                    { value: 'Supports', label: '✅ Supports' },
+                                    { value: 'Partially Supports', label: '🟡 Partially Supports' },
+                                    { value: 'Does Not Support', label: '🔴 Does Not Support' },
+                                    { value: 'Not Applicable', label: '⚫ Not Applicable' },
+                                    { value: 'Not Evaluated', label: '❓ Not Evaluated' }
+                                ];
+                                let selectHtml = `<select class="support-dropdown" onchange="updateStandardRating('${standard.id}', this.value)" aria-label="Support level for ${standard.name}">`;
+                                options.forEach(opt => {
+                                    const selected = standard.supportLevel === opt.value ? 'selected' : '';
+                                    selectHtml += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+                                });
+                                selectHtml += '</select>';
+                                const commentsValue = standard.comments || '';
+                                // Avoid displaying the ID twice in the criterion name.
+                                let displayName = standard.name || standard.id;
+                                if (displayName) {
+                                    const idLower = String(standard.id).toLowerCase();
+                                    const nameLower = displayName.toLowerCase();
+                                    if (nameLower.startsWith(idLower)) {
+                                        displayName = displayName.substring(standard.id.length).trim();
+                                        displayName = displayName.replace(/^[:.\-\s]+/, '').trim();
+                                    }
+                                }
+                                // Prepend the ID to the criterion name for display. This avoids duplication but ensures the number is visible.
+                                const displayLabel = `${standard.id} ${displayName}`.trim();
+                                groupHtml += `<tr class="${getSupportClass(standard.supportLevel)}"><td>${displayLabel}</td><td>${selectHtml}</td><td><textarea class="comment-input" placeholder="Evaluator comments..." onchange="updateStandardComment('${standard.id}', this.value)" aria-label="Comments for ${displayLabel}">${commentsValue}</textarea></td></tr>`;
+                            }
+                            groupHtml += `</tbody></table>`;
+                        } else {
+                            // If a category has no standards for this group, still indicate it if there are any standards in other category
+                            // but we skip empty categories to reduce clutter
+                        }
+                    });
+                    // Summary section
+                    groupHtml += `<div class="summary-section"><h4 class="summary-title">Summary</h4><p class="summary-text">${generateGroupSummary(groupData)}</p></div>`;
+                    groupHtml += `</div>`;
+                    html += groupHtml;
+                }
+                html += `</div>`;
+                resultsContainer.innerHTML = html;
+                // Render the summary chart after the DOM updates
+                try {
+                    renderSummaryChart(supportCounts, grade, totalEvaluated);
+                } catch (chartErr) {
+                    console.warn('⚠️ Summary chart could not be rendered:', chartErr);
+                }
+                // Show results and export sections
+                showElement('resultsSection');
+                showElement('exportSection');
+                // Scroll into view unless suppressed by an inline edit
+                if (!skipAutoScroll) {
+                    setTimeout(() => {
+                        const rs = document.getElementById('resultsSection');
+                        if (rs) rs.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                } else {
+                    // Reset suppression flag so next render can scroll normally
+                    skipAutoScroll = false;
+                }
+                console.log('✅ Categorized results displayed');
+            } catch (error) {
+                console.error('❌ displayCategorizedResults error:', error);
+                showError('Failed to display results: ' + error.message);
+            }
+        }
+
+        /**
+         * Display raw AI output in the collapsible container and make it visible.
+         * @param {string} raw - Raw text from AI.
+         */
+        function showRawOutput(raw) {
+            try {
+                aiRawOutput = raw || '';
+                const container = document.getElementById('rawOutputContainer');
+                const content = document.getElementById('rawOutputContent');
+                const toggleBtn = document.getElementById('toggleRawOutput');
+                if (container && content && toggleBtn) {
+                    content.textContent = raw || '';
+                    container.classList.add('show');
+                    toggleBtn.textContent = 'Hide Raw Output';
+                }
+                // Hide results section since parsing failed
+                hideElement('resultsSection');
+                hideElement('exportSection');
+            } catch (error) {
+                console.error('❌ showRawOutput error:', error);
+            }
+        }
+
+        /**
+         * Hide the raw output container if it is visible.
+         */
+        function hideRawOutput() {
+            try {
+                const container = document.getElementById('rawOutputContainer');
+                const toggleBtn = document.getElementById('toggleRawOutput');
+                if (container) container.classList.remove('show');
+                if (toggleBtn) toggleBtn.textContent = 'Show Raw Output';
+            } catch (error) {
+                console.error('❌ hideRawOutput error:', error);
+            }
+        }
+
+        /**
+         * Toggle visibility of raw output.
+         */
+        function toggleRawOutput() {
+            try {
+                const container = document.getElementById('rawOutputContainer');
+                const toggleBtn = document.getElementById('toggleRawOutput');
+                if (container && toggleBtn) {
+                    if (container.classList.contains('show')) {
+                        container.classList.remove('show');
+                        toggleBtn.textContent = 'Show Raw Output';
+                    } else {
+                        container.classList.add('show');
+                        toggleBtn.textContent = 'Hide Raw Output';
+                    }
+                }
+            } catch (error) {
+                console.error('❌ toggleRawOutput error:', error);
+            }
+        }
+
+        /**
+         * Render a simple donut/pie chart on the results page summary.
+         * This draws arcs proportional to the counts of each support level and
+         * places the overall grade in the centre. Called after the summary
+         * section has been inserted into the DOM.
+         * @param {Object} counts - An object with counts for each support level.
+         * @param {string} grade - The computed letter grade (A/B/C/D).
+         * @param {number} total - Total number of evaluated standards.
+         */
+        function renderSummaryChart(counts, grade, total) {
+            try {
+                const canvas = document.getElementById('summaryChart');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = Math.min(width, height) / 2 - 8;
+                // Clear previous drawings
+                ctx.clearRect(0, 0, width, height);
+                // Colour mapping for slices
+                const pieColors = {
+                    'Supports': '#34d399',
+                    'Partially Supports': '#fbbf24',
+                    'Does Not Support': '#f87171',
+                    'Not Applicable': '#9ca3af',
+                    'Not Evaluated': '#a78bfa'
+                };
+                const order = ['Supports', 'Partially Supports', 'Does Not Support', 'Not Applicable', 'Not Evaluated'];
+                // Use total parameter if provided; otherwise calculate
+                let totalCount = total;
+                if (typeof totalCount !== 'number' || isNaN(totalCount)) {
+                    totalCount = 0;
+                    order.forEach(key => { totalCount += (counts[key] || 0); });
+                }
+                if (totalCount <= 0) return;
+                let startAngle = -Math.PI / 2; // Start at top
+                order.forEach(level => {
+                    const value = counts[level] || 0;
+                    if (!value) return;
+                    const sliceAngle = (value / totalCount) * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+                    ctx.closePath();
+                    ctx.fillStyle = pieColors[level] || '#ccc';
+                    ctx.fill();
+                    startAngle += sliceAngle;
+                });
+                // Inner white circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius / 2, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                // Grade text
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 28px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(grade || ''), centerX, centerY);
+            } catch (error) {
+                console.error('❌ renderSummaryChart error:', error);
+            }
+        }
+
+        /**
+         * Copy the raw AI output to the clipboard.
+         */
+        async function copyRawOutput() {
+            try {
+                if (!aiRawOutput) return;
+                await navigator.clipboard.writeText(aiRawOutput);
+                const copyBtn = document.getElementById('copyRawOutput');
+                if (copyBtn) {
+                    const original = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = original; }, 2000);
+                }
+            } catch (error) {
+                console.error('❌ copyRawOutput error:', error);
+                alert('Failed to copy raw output');
+            }
+        }
+
+        /**
+         * Send the selected PDF file to the AI endpoint for analysis.
+         * Displays progress updates and handles the parsed response or fallback.
+         * @param {File} file - The uploaded PDF file.
+         */
+        async function processAIFile(file) {
+            try {
+                showLoading('Uploading to AI...');
+                updateLoadingProgress(5);
+                const formData = new FormData();
+                formData.append('file', file);
+                const response = await fetch('/analyze', { method: 'POST', body: formData });
+                updateLoadingProgress(50);
+                const rawText = await response.text();
+                updateLoadingProgress(60);
+                // Attempt to parse AI output into structured data. We'll also prepare a local
+                // fallback by extracting the PDF text and running the standard parser on it.
+                let parsed = null;
+                try {
+                    parsed = parseAiOutput(rawText);
+                } catch (e) {
+                    console.warn('⚠️ parseAiOutput threw an error:', e.message);
+                }
+                let aiStandards = [];
+                if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                    aiStandards = convertAiResultsToStandards(parsed);
+                } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    aiStandards = convertAiResultsToStandards(parsed);
+                } else {
+                    // Try parsing the AI response as plain VPAT text
+                    try {
+                        aiStandards = parseVPATText(rawText);
+                    } catch (fallbackErr) {
+                        console.error('❌ Parsing AI raw text failed:', fallbackErr);
+                    }
+                }
+                // Extract text from the uploaded PDF and parse locally as a comprehensive fallback.
+                let localStandards = [];
+                try {
+                    const extractedFallback = await extractTextFromPDF(file);
+                    if (extractedFallback && extractedFallback.length > 0) {
+                        localStandards = parseVPATText(extractedFallback);
+                    }
+                } catch (fallbackErr2) {
+                    console.error('❌ PDF extraction fallback failed:', fallbackErr2);
+                }
+                // Decide which set of standards to use: prefer AI if it contains at least some entries
+                let standards = [];
+                if (aiStandards && aiStandards.length > 0) {
+                    standards = aiStandards;
+                } else if (localStandards && localStandards.length > 0) {
+                    console.warn('⚠️ Using local fallback parsing results because AI provided no usable data');
+                    standards = localStandards;
+                }
+                if (!standards || standards.length === 0) {
+                    // Nothing to show; display raw AI output for debugging
+                    console.warn('⚠️ No standards found via AI or local fallback. Displaying raw AI output.');
+                    hideLoading();
+                    showRawOutput(rawText);
+                    return;
+                }
+                updateLoadingProgress(75);
+                const organized = organizeByUserGroups(standards);
+                updateLoadingProgress(90);
+                hideLoading();
+                isAIUsed = true;
+                displayCategorizedResults(organized, true);
+                updateLoadingProgress(100);
+            } catch (error) {
+                console.error('❌ processAIFile error:', error);
+                hideLoading();
+                showError('AI analysis failed: ' + error.message);
+            }
+        }
+
+        /**
+         * Send the manually entered text to the AI endpoint for analysis.
+         * Displays progress updates and handles the parsed response or fallback.
+         * @param {string} text - The manual text input.
+         */
+        async function processAIText(text) {
+            try {
+                showLoading('Sending text to AI...');
+                updateLoadingProgress(5);
+                const response = await fetch('/analyze-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                updateLoadingProgress(50);
+                const rawText = await response.text();
+                updateLoadingProgress(60);
+                // Attempt to parse AI output
+                let parsed = null;
+                try {
+                    parsed = parseAiOutput(rawText);
+                } catch (e) {
+                    console.warn('⚠️ parseAiOutput threw an error:', e.message);
+                }
+                let standards = [];
+                if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                    standards = convertAiResultsToStandards(parsed);
+                } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    standards = convertAiResultsToStandards(parsed);
+                } else {
+                    console.warn('⚠️ AI text output did not contain structured data; falling back to local text parsing');
+                    try {
+                        standards = parseVPATText(rawText);
+                    } catch (fallbackErr) {
+                        console.error('❌ Fallback text parsing failed:', fallbackErr);
+                    }
+                }
+                if (!standards || standards.length === 0) {
+                    console.warn('⚠️ No standards extracted from AI text output');
+                    hideLoading();
+                    showRawOutput(rawText);
+                    return;
+                }
+                updateLoadingProgress(75);
+                const organized = organizeByUserGroups(standards);
+                updateLoadingProgress(90);
+                hideLoading();
+                isAIUsed = true;
+                displayCategorizedResults(organized, true);
+                updateLoadingProgress(100);
+            } catch (error) {
+                console.error('❌ processAIText error:', error);
+                hideLoading();
+                showError('AI analysis failed: ' + error.message);
+            }
+        }
+        // === DISPLAY RESULTS ===
+        function displayResults(data) {
+            console.log('📊 Displaying results...');
+            
+            try {
+                currentResults = data;
+                const resultsContainer = document.getElementById('results');
+                
+                if (!resultsContainer) {
+                    throw new Error('Results container not found');
+                }
+                
+                // Calculate statistics - use unique standards to avoid double counting
+                const allUniqueStandards = new Set();
+                Object.values(data).forEach(group => {
+                    group.standards.forEach(std => allUniqueStandards.add(std.id));
+                });
+                
+                const totalGroups = Object.keys(data).length;
+                const fullyAccessible = Object.values(data).filter(g => g.accessibility === 'Yes').length;
+                const partiallyAccessible = Object.values(data).filter(g => g.accessibility === 'Partially').length;
+                const notAccessible = Object.values(data).filter(g => g.accessibility === 'No').length;
+                const notEvaluated = Object.values(data).filter(g => g.accessibility === 'Not Evaluated').length;
+                const totalStandards = allUniqueStandards.size;
+                
+                let html = `
+                    <div class="parsing-info">
+                        <strong>📝 VPAT Analysis Complete:</strong> ${totalStandards} unique accessibility standards found and organized by disability user groups.
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${totalGroups}</div>
+                            <div class="stat-label">User Groups</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${fullyAccessible}</div>
+                            <div class="stat-label">✅ Fully Accessible</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${partiallyAccessible}</div>
+                            <div class="stat-label">🟡 Partially Accessible</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${notAccessible}</div>
+                            <div class="stat-label">🔴 Not Accessible</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${notEvaluated}</div>
+                            <div class="stat-label">❓ Not Evaluated</div>
+                        </div>
+                    </div>
+                    
+                    <div class="user-groups-grid">
+                `;
+                
+                // Add user group cards
+                for (const [groupName, groupData] of Object.entries(data)) {
+                    html += createUserGroupCard(groupName, groupData);
+                }
+                
+                html += '</div>';
+                resultsContainer.innerHTML = html;
+                
+                console.log('✅ Results displayed successfully');
+                console.log(`📊 Display stats: ${totalStandards} unique standards across ${totalGroups} groups`);
+                
+            } catch (error) {
+                console.error('❌ Error displaying results:', error);
+                showError('Failed to display results: ' + error.message);
+            }
+        }
+
+        function createUserGroupCard(groupName, groupData) {
+            const badgeClass = getBadgeClass(groupData.accessibility);
+            const badgeIcon = getBadgeIcon(groupData.accessibility);
+            const badgeText = getBadgeText(groupData.accessibility);
+            
+            let html = `
+                <div class="user-group-card">
+                    <div class="user-group-header">
+                        <h3 class="user-group-title">${groupName}</h3>
+                        <div class="accessibility-badge ${badgeClass}">
+                            ${badgeIcon} ${badgeText}
+                        </div>
+                    </div>
+                    <p class="user-group-description">${groupData.description}</p>
+                    
+                    <div class="standards-list">
+            `;
+            
+            if (groupData.standards.length > 0) {
+                for (const standard of groupData.standards) {
+                    html += createStandardItem(standard);
+                }
+            } else {
+                html += `
+                    <div class="standard-item not-evaluated">
+                        <div>No standards from this user group were found in the document.</div>
+                    </div>
+                `;
+            }
+            
+            html += `
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h4 class="summary-title">Summary</h4>
+                        <p class="summary-text">${generateGroupSummary(groupData)}</p>
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+
+        function createStandardItem(standard) {
+            const supportClass = getSupportClass(standard.supportLevel);
+            const supportIcon = getBadgeIcon(getAccessibilityFromSupport(standard.supportLevel));
+            
+            return `
+                <div class="standard-item ${supportClass}">
+                    <div class="standard-header">
+                        <div class="standard-name">${standard.name}</div>
+                    </div>
+                    <div class="standard-controls">
+                        <select class="support-dropdown" onchange="updateStandardRating('${standard.id}', this.value)" aria-label="Support level for ${standard.name}">
+                            <option value="Supports" ${standard.supportLevel === 'Supports' ? 'selected' : ''}>✅ Supports</option>
+                            <option value="Partially Supports" ${standard.supportLevel === 'Partially Supports' ? 'selected' : ''}>🟡 Partially Supports</option>
+                            <option value="Does Not Support" ${standard.supportLevel === 'Does Not Support' ? 'selected' : ''}>🔴 Does Not Support</option>
+                            <option value="Not Applicable" ${standard.supportLevel === 'Not Applicable' ? 'selected' : ''}>⚫ Not Applicable</option>
+                            <option value="Not Evaluated" ${standard.supportLevel === 'Not Evaluated' ? 'selected' : ''}>❓ Not Evaluated</option>
+                        </select>
+                    </div>
+                    <textarea class="comment-input" 
+                        placeholder="Evaluator comments..."
+                        onchange="updateStandardComment('${standard.id}', this.value)"
+                        aria-label="Comments for ${standard.name}">${standard.comments}</textarea>
+                </div>
+            `;
+        }
+
+        function generateGroupSummary(groupData) {
+            if (groupData.standards.length === 0) {
+                return 'No relevant standards were found in the document for this user group.';
+            }
+            
+            const issueStandards = groupData.standards.filter(s => s.supportLevel === 'Does Not Support');
+            const partialStandards = groupData.standards.filter(s => s.supportLevel === 'Partially Supports');
+            
+            if (issueStandards.length > 0) {
+                return `Critical accessibility barriers found in ${issueStandards.length} standard(s). Immediate attention required.`;
+            } else if (partialStandards.length > 0) {
+                return `${partialStandards.length} standard(s) need improvement to achieve full accessibility compliance.`;
+            } else {
+                return 'All evaluated standards for this user group meet accessibility requirements.';
+            }
+        }
+
+        // === RESET FUNCTION ===
+        function resetAnalysis() {
+            console.log('🔄 resetAnalysis() called');
+            
+            try {
+                // Reset file input
+                const fileInput = document.getElementById('fileInput');
+                const textInput = document.getElementById('textInput');
+                
+                if (fileInput) fileInput.value = '';
+                if (textInput) textInput.value = '';
+                
+                // Reset upload zone
+                const uploadZone = document.getElementById('uploadZone');
+                if (uploadZone) {
+                    uploadZone.innerHTML = `
+                        <div class="upload-icon">📄</div>
+                        <div class="upload-text">Drop your PDF here or click to browse</div>
+                        <div class="upload-subtext">Supports PDF files up to 10MB</div>
+                    `;
+                    uploadZone.classList.remove('file-selected');
+                }
+                
+                // Hide file display
+                hideElement('fileDisplay');
+                
+                // Hide results
+                hideElement('resultsSection');
+                hideElement('exportSection');
+                
+                // Clear results
+                const resultsContainer = document.getElementById('results');
+                if (resultsContainer) resultsContainer.innerHTML = '';
+                
+                // Clear variables
+                currentResults = null;
+                uploadedFile = null;
+                
+                hideError();
+                console.log('✅ Reset complete');
+                
+            } catch (error) {
+                console.error('❌ Reset failed:', error);
+            }
+        }
+
+        // === EXPORT FUNCTIONS ===
+        function exportPDF() {
+            console.log('📄 Exporting PDF...');
+            
+            try {
+                if (!currentResults) {
+                    showError('No results to export. Please run an analysis first.');
+                    return;
+                }
+                
+                // Check if jsPDF is available
+                if (typeof window.jspdf === 'undefined') {
+                    showError('PDF export library not loaded. Please refresh the page.');
+                    return;
+                }
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Set up fonts and styling
+                doc.setFont("helvetica");
+                
+                // Helper function to add text with proper wrapping
+                function addWrappedText(text, x, y, maxWidth, fontSize = 10, isBold = false) {
+                    doc.setFontSize(fontSize);
+                    if (isBold) {
+                        doc.setFont("helvetica", "bold");
+                    } else {
+                        doc.setFont("helvetica", "normal");
+                    }
+                    
+                    const lines = doc.splitTextToSize(text, maxWidth);
+                    doc.text(lines, x, y);
+                    return y + (lines.length * fontSize * 0.5); // Return new Y position
+                }
+                
+                // Helper function to check if we need a new page
+                function checkNewPage(currentY, neededSpace = 20) {
+                    if (currentY > 270) {
+                        doc.addPage();
+                        return 20; // Reset Y position
+                    }
+                    return currentY;
+                }
+                
+                let yPos = 20;
+                
+                // Title
+                yPos = addWrappedText('VPAT/ACR Accessibility Analysis Report', 20, yPos, 170, 18, true);
+                yPos += 10;
+                
+                // Date
+                yPos = addWrappedText(`Generated: ${new Date().toLocaleDateString()}`, 20, yPos, 170, 10);
+                yPos += 15;
+                
+                // Statistics
+                const totalGroups = Object.keys(currentResults).length;
+                const fullyAccessible = Object.values(currentResults).filter(g => g.accessibility === 'Yes').length;
+                const partiallyAccessible = Object.values(currentResults).filter(g => g.accessibility === 'Partially').length;
+                const notAccessible = Object.values(currentResults).filter(g => g.accessibility === 'No').length;
+                
+                // Get unique standards count (avoid duplicates)
+                const allStandardIds = new Set();
+                Object.values(currentResults).forEach(group => {
+                    group.standards.forEach(std => allStandardIds.add(std.id));
+                });
+                const totalStandards = allStandardIds.size;
+                
+                yPos = addWrappedText('Summary Statistics:', 20, yPos, 170, 12, true);
+                yPos += 8;
+                yPos = addWrappedText(`• Total User Groups: ${totalGroups}`, 20, yPos, 170, 10);
+                yPos += 6;
+                yPos = addWrappedText(`• Fully Accessible: ${fullyAccessible}`, 20, yPos, 170, 10);
+                yPos += 6;
+                yPos = addWrappedText(`• Partially Accessible: ${partiallyAccessible}`, 20, yPos, 170, 10);
+                yPos += 6;
+                yPos = addWrappedText(`• Not Accessible: ${notAccessible}`, 20, yPos, 170, 10);
+                yPos += 6;
+                yPos = addWrappedText(`• Total Standards Evaluated: ${totalStandards}`, 20, yPos, 170, 10);
+                yPos += 15;
+                
+                // User Groups
+                for (const [groupName, groupData] of Object.entries(currentResults)) {
+                    yPos = checkNewPage(yPos, 40);
+                    
+                    // Group title and status
+                    yPos = addWrappedText(groupName, 20, yPos, 170, 14, true);
+                    yPos += 5;
+                    yPos = addWrappedText(`Status: ${getBadgeText(groupData.accessibility)}`, 20, yPos, 170, 10);
+                    yPos += 5;
+                    yPos = addWrappedText(`Description: ${groupData.description}`, 20, yPos, 170, 10);
+                    yPos += 10;
+                    
+                    // Standards
+                    if (groupData.standards.length > 0) {
+                        yPos = addWrappedText('Standards:', 20, yPos, 170, 11, true);
+                        yPos += 5;
+                        
+                        for (const standard of groupData.standards) {
+                            yPos = checkNewPage(yPos, 15);
+                            
+                            // Standard name and support level
+                            yPos = addWrappedText(`• ${standard.name}: ${standard.supportLevel}`, 25, yPos, 165, 9);
+                            yPos += 4;
+                            
+                            // Comments if available and meaningful
+                            if (standard.comments && 
+                                standard.comments.trim() && 
+                                standard.comments !== 'No additional comments found.' &&
+                                standard.comments.length > 10) {
+                                yPos = addWrappedText(`  Comments: ${standard.comments}`, 30, yPos, 160, 8);
+                                yPos += 2;
+                            }
+                            yPos += 2;
+                        }
+                    } else {
+                        yPos = addWrappedText('No standards found for this user group.', 20, yPos, 170, 10);
+                        yPos += 5;
+                    }
+                    
+                    yPos += 10; // Space between groups
+                }
+                
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(`Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
+                }
+                
+                // Save the PDF
+                doc.save('vpat-analysis-report.pdf');
+                console.log('✅ PDF exported successfully');
+                
+            } catch (error) {
+                console.error('❌ PDF export failed:', error);
+                showError('PDF export failed: ' + error.message);
+            }
+        }
+
+        function exportJSON() {
+            console.log('📊 Exporting JSON...');
+            
+            try {
+                if (!currentResults) {
+                    showError('No results to export. Please run an analysis first.');
+                    return;
+                }
+                
+                const jsonData = JSON.stringify(currentResults, null, 2);
+                downloadFile(jsonData, 'vpat-analysis.json', 'application/json');
+                console.log('✅ JSON exported successfully');
+                
+            } catch (error) {
+                console.error('❌ JSON export failed:', error);
+                showError('JSON export failed: ' + error.message);
+            }
+        }
+
+        function exportText() {
+            console.log('📝 Exporting text...');
+            
+            try {
+                if (!currentResults) {
+                    showError('No results to export. Please run an analysis first.');
+                    return;
+                }
+                
+                let report = 'VPAT/ACR Accessibility Analysis Report\n';
+                report += '=====================================\n\n';
+                report += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+                
+                // Add summary statistics
+                const totalGroups = Object.keys(currentResults).length;
+                const fullyAccessible = Object.values(currentResults).filter(g => g.accessibility === 'Yes').length;
+                const partiallyAccessible = Object.values(currentResults).filter(g => g.accessibility === 'Partially').length;
+                const notAccessible = Object.values(currentResults).filter(g => g.accessibility === 'No').length;
+                
+                // Get unique standards count (avoid duplicates)
+                const allStandardIds = new Set();
+                Object.values(currentResults).forEach(group => {
+                    group.standards.forEach(std => allStandardIds.add(std.id));
+                });
+                const totalStandards = allStandardIds.size;
+                
+                report += 'SUMMARY STATISTICS\n';
+                report += '------------------\n';
+                report += `Total User Groups: ${totalGroups}\n`;
+                report += `Fully Accessible: ${fullyAccessible}\n`;
+                report += `Partially Accessible: ${partiallyAccessible}\n`;
+                report += `Not Accessible: ${notAccessible}\n`;
+                report += `Total Standards Evaluated: ${totalStandards}\n\n`;
+                
+                for (const [groupName, groupData] of Object.entries(currentResults)) {
+                    report += `${groupName}\n`;
+                    report += `${'-'.repeat(groupName.length)}\n`;
+                    report += `Status: ${getBadgeText(groupData.accessibility)}\n`;
+                    report += `Description: ${groupData.description}\n\n`;
+                    
+                    if (groupData.standards.length > 0) {
+                        report += 'Standards:\n';
+                        for (const standard of groupData.standards) {
+                            report += `  • ${standard.name}: ${standard.supportLevel}\n`;
+                            // Only include meaningful comments
+                            if (standard.comments && 
+                                standard.comments.trim() && 
+                                standard.comments !== 'No additional comments found.' &&
+                                standard.comments.length > 10) {
+                                report += `    ${standard.comments}\n`;
+                            }
+                        }
+                    } else {
+                        report += 'No standards found for this group.\n';
+                    }
+                    
+                    report += '\n' + '='.repeat(50) + '\n\n';
+                }
+                
+                downloadFile(report, 'vpat-analysis-report.txt', 'text/plain');
+                console.log('✅ Text exported successfully');
+                
+            } catch (error) {
+                console.error('❌ Text export failed:', error);
+                showError('Text export failed: ' + error.message);
+            }
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            try {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('❌ Download failed:', error);
+                throw new Error('Download failed: ' + error.message);
+            }
+        }
+
+        // === DARK MODE ===
+        function toggleDarkMode() {
+            console.log('🌙 Toggling dark mode...');
+            
+            try {
+                document.body.classList.toggle('dark-mode');
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                
+                const toggleBtn = document.querySelector('.contrast-toggle');
+                if (toggleBtn) {
+                    toggleBtn.textContent = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+                }
+                
+                // Save preference
+                try {
+                    localStorage.setItem('darkMode', isDarkMode);
+                } catch (e) {
+                    console.log('⚠️ localStorage not available');
+                }
+                
+                console.log(`🌙 Dark mode: ${isDarkMode ? 'ON' : 'OFF'}`);
+                
+            } catch (error) {
+                console.error('❌ Dark mode toggle failed:', error);
+            }
+        }
+
+        function loadDarkModePreference() {
+            try {
+                const isDarkMode = localStorage.getItem('darkMode') === 'true';
+                if (isDarkMode) {
+                    document.body.classList.add('dark-mode');
+                    const toggleBtn = document.querySelector('.contrast-toggle');
+                    if (toggleBtn) toggleBtn.textContent = '☀️ Light Mode';
+                }
+            } catch (e) {
+                console.log('⚠️ localStorage not available');
+            }
+        }
+
+        // === UPDATE FUNCTIONS ===
+        function updateStandardRating(standardId, newRating) {
+            console.log(`🔧 Updating ${standardId} to ${newRating}`);
+            try {
+                if (!currentResults) {
+                    console.warn('⚠️ No current results to update');
+                    return;
+                }
+                // Preserve current scroll position so that editing a field does not jump the user back to the top
+                const previousScrollY = window.scrollY;
+                // Find and update the standard in the current results
+                let standardUpdated = false;
+                let updatedGroups = [];
+                for (const [groupName, groupData] of Object.entries(currentResults)) {
+                    const standardIndex = groupData.standards.findIndex(s => s.id === standardId);
+                    if (standardIndex !== -1) {
+                        // Update the existing standard
+                        const oldLevel = groupData.standards[standardIndex].supportLevel;
+                        groupData.standards[standardIndex].supportLevel = newRating;
+                        standardUpdated = true;
+                        updatedGroups.push(groupName);
+                        console.log(`✅ Updated ${standardId} in group: ${groupName} (${oldLevel} -> ${newRating})`);
+                    }
+                }
+                if (!standardUpdated) {
+                    console.warn(`⚠️ Standard ${standardId} not found for update`);
+                    return;
+                }
+                // Recalculate accessibility ratings for affected groups
+                for (const groupName of updatedGroups) {
+                    const groupData = currentResults[groupName];
+                    const relevantStandards = groupData.standards;
+                    let accessibility = 'Not Evaluated';
+                    if (relevantStandards.length > 0) {
+                        const hasDoesNotSupport = relevantStandards.some(s => s.supportLevel === 'Does Not Support');
+                        const hasPartiallySupports = relevantStandards.some(s => s.supportLevel === 'Partially Supports');
+                        const hasSupports = relevantStandards.some(s => s.supportLevel === 'Supports');
+                        const hasNotApplicable = relevantStandards.some(s => s.supportLevel === 'Not Applicable');
+                        if (hasDoesNotSupport) {
+                            accessibility = 'No';
+                        } else if (hasPartiallySupports) {
+                            accessibility = 'Partially';
+                        } else if (hasSupports || hasNotApplicable) {
+                            accessibility = 'Yes';
+                        }
+                    }
+                    const oldAccessibility = currentResults[groupName].accessibility;
+                    currentResults[groupName].accessibility = accessibility;
+                    console.log(`📊 Group ${groupName} accessibility: ${oldAccessibility} -> ${accessibility}`);
+                }
+                // Re-display the results with updated data; categorize view retains table structure
+                // Set flag to avoid automatic scrolling when updating a rating
+                skipAutoScroll = true;
+                displayCategorizedResults(currentResults, isAIUsed);
+            } catch (error) {
+                console.error('❌ Update rating failed:', error);
+            }
+        }
+
+        function updateStandardComment(standardId, newComment) {
+            console.log(`🔧 Updating comment for ${standardId}`);
+            try {
+                if (!currentResults) {
+                    console.warn('⚠️ No current results to update');
+                    return;
+                }
+                // No need to preserve scroll here; scrolling will be suppressed explicitly
+                // Find and update the comment in the current results
+                let commentUpdated = false;
+                for (const [groupName, groupData] of Object.entries(currentResults)) {
+                    const standard = groupData.standards.find(s => s.id === standardId);
+                    if (standard) {
+                        const oldComment = standard.comments;
+                        standard.comments = newComment;
+                        commentUpdated = true;
+                        console.log(`✅ Updated comment for ${standardId} in group: ${groupName}`);
+                        console.log(`📝 Comment change: "${oldComment?.substring(0, 50)}..." -> "${newComment?.substring(0, 50)}..."`);
+                        // Only update the first occurrence to avoid duplicates
+                        break;
+                    }
+                }
+                if (!commentUpdated) {
+                    console.warn(`⚠️ Standard ${standardId} not found for comment update`);
+                } else {
+                    // Re-render to refresh summaries and comments display
+                    // Suppress automatic scrolling during comment updates
+                    skipAutoScroll = true;
+                    displayCategorizedResults(currentResults, isAIUsed);
+                }
+            } catch (error) {
+                console.error('❌ Update comment failed:', error);
+            }
+        }
+
+        // === UTILITY FUNCTIONS ===
+        function showLoading(message = 'Processing...') {
+            try {
+                const loadingSection = document.getElementById('loadingSection');
+                const loadingText = document.getElementById('loadingText');
+                
+                if (loadingSection) loadingSection.classList.add('show');
+                if (loadingText) loadingText.textContent = message;
+                // Reset progress bar at the beginning of loading
+                updateLoadingProgress(0);
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                if (analyzeBtn) analyzeBtn.disabled = true;
+                
+            } catch (error) {
+                console.error('❌ Show loading failed:', error);
+            }
+        }
+
+        function hideLoading() {
+            try {
+                const loadingSection = document.getElementById('loadingSection');
+                if (loadingSection) loadingSection.classList.remove('show');
+                // Reset progress bar when hiding loading
+                updateLoadingProgress(0);
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                if (analyzeBtn) analyzeBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('❌ Hide loading failed:', error);
+            }
+        }
+
+        function showError(message) {
+            try {
+                console.log('❌ Error:', message);
+                const errorElement = document.getElementById('errorMessage');
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.classList.add('show');
+                } else {
+                    alert('Error: ' + message);
+                }
+            } catch (error) {
+                console.error('❌ Show error failed:', error);
+                alert('Error: ' + message);
+            }
+        }
+
+        function hideError() {
+            try {
+                const errorElement = document.getElementById('errorMessage');
+                if (errorElement) {
+                    errorElement.classList.remove('show');
+                }
+            } catch (error) {
+                console.error('❌ Hide error failed:', error);
+            }
+        }
+
+        function showElement(elementId) {
+            try {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.classList.add('show');
+                } else {
+                    console.warn(`⚠️ Element not found: ${elementId}`);
+                }
+            } catch (error) {
+                console.error(`❌ Show element failed for ${elementId}:`, error);
+            }
+        }
+
+        function hideElement(elementId) {
+            try {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.classList.remove('show');
+                }
+            } catch (error) {
+                console.error(`❌ Hide element failed for ${elementId}:`, error);
+            }
+        }
+
+        /**
+         * Update the visual progress bar during processing.
+         * @param {number} percent - Progress percentage from 0 to 100.
+         */
+        function updateLoadingProgress(percent) {
+            try {
+                const progressBar = document.getElementById('progressBar');
+                if (progressBar) {
+                    const clamped = Math.max(0, Math.min(100, percent));
+                    progressBar.style.width = clamped + '%';
+                }
+            } catch (error) {
+                console.error('❌ Failed to update progress bar:', error);
+            }
+        }
+
+        /**
+         * Update the AI mode indicator to reflect the current checkbox state.
+         */
+        function updateAiModeIndicator() {
+            try {
+                const aiIndicator = document.getElementById('aiModeIndicator');
+                const aiCheckbox = document.getElementById('useAIVision');
+                if (!aiIndicator || !aiCheckbox) return;
+                const isChecked = aiCheckbox.checked;
+                aiIndicator.textContent = isChecked ? 'AI Mode: On' : 'AI Mode: Off';
+            } catch (error) {
+                console.error('❌ Failed to update AI mode indicator:', error);
+            }
+        }
+
+        function getBadgeClass(accessibility) {
+            switch (accessibility) {
+                case 'Yes': return 'badge-supports';
+                case 'Partially': return 'badge-partially';
+                case 'No': return 'badge-does-not';
+                case 'Not Evaluated': return 'badge-not-evaluated';
+                default: return 'badge-not-evaluated';
+            }
+        }
+
+        function getBadgeIcon(accessibility) {
+            switch (accessibility) {
+                case 'Yes': return '✅';
+                case 'Partially': return '🟡';
+                case 'No': return '🔴';
+                case 'Not Evaluated': return '❓';
+                default: return '❓';
+            }
+        }
+
+        function getBadgeText(accessibility) {
+            switch (accessibility) {
+                case 'Yes': return 'Accessible';
+                case 'Partially': return 'Partially Accessible';
+                case 'No': return 'Not Accessible';
+                case 'Not Evaluated': return 'Not Evaluated';
+                default: return 'Not Evaluated';
+            }
+        }
+
+        function getAccessibilityFromSupport(supportLevel) {
+            switch (supportLevel) {
+                case 'Supports': return 'Yes';
+                case 'Partially Supports': return 'Partially';
+                case 'Does Not Support': return 'No';
+                case 'Not Applicable': return 'Yes';
+                case 'Not Evaluated': return 'Not Evaluated';
+                default: return 'Not Evaluated';
+            }
+        }
+
+        function getSupportClass(supportLevel) {
+            switch (supportLevel) {
+                case 'Supports': return 'supports';
+                case 'Partially Supports': return 'partially';
+                case 'Does Not Support': return 'does-not';
+                case 'Not Applicable': return 'not-applicable';
+                case 'Not Evaluated': return 'not-evaluated';
+                default: return 'not-evaluated';
+            }
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        /**
+         * Override the default exportPDF with an async implementation that
+         * preserves the styling of accessibility results, includes an optional
+         * summary pie chart and grade, and captures each user-group card
+         * using html2canvas. A checkbox (#includeSummary) controls whether
+         * the summary is included.
+         */
+        async function exportPDF() {
+            // Build a PDF report that preserves the structure and colors of the results
+            console.log('📄 Exporting PDF...');
+            try {
+                if (!currentResults) {
+                    showError('No results to export. Please run an analysis first.');
+                    return;
+                }
+                if (typeof window.jspdf === 'undefined') {
+                    showError('PDF export library not loaded. Please refresh the page.');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 40;
+                let y = margin;
+
+                // Header
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(15, 23, 42);
+                doc.text('VPAT/ACR Accessibility Analysis Report', margin, y);
+                y += 26;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const now = new Date();
+                doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, margin, y);
+                y += 20;
+
+                // Insert optional VPAT title and reviewer name if provided
+                try {
+                    const titleInput = typeof vpatTitle !== 'undefined' && vpatTitle ? vpatTitle : (document.getElementById('vpatTitleInput')?.value.trim() || '');
+                    const reviewerInput = typeof reviewerName !== 'undefined' && reviewerName ? reviewerName : (document.getElementById('reviewerNameInput')?.value.trim() || '');
+                    if (titleInput) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(12);
+                        doc.setTextColor(15, 23, 42);
+                        doc.text(titleInput, margin, y);
+                        y += 16;
+                    }
+                    if (reviewerInput) {
+                        doc.setFont('helvetica', 'italic');
+                        doc.setFontSize(10);
+                        doc.setTextColor(71, 85, 105);
+                        doc.text(`Reviewed by: ${reviewerInput}`, margin, y);
+                        y += 14;
+                    }
+                } catch (metaError) {
+                    console.error('⚠️ Error adding title or reviewer to PDF:', metaError);
+                }
+
+                // Determine if summary should be included
+                let includeSummary = true;
+                const summaryToggle = document.getElementById('includeSummary');
+                if (summaryToggle && summaryToggle.type === 'checkbox') {
+                    includeSummary = summaryToggle.checked;
+                }
+
+                // Aggregate support counts for summary
+                const supportCounts = { 'Supports': 0, 'Partially Supports': 0, 'Does Not Support': 0, 'Not Applicable': 0, 'Not Evaluated': 0 };
+                for (const group of Object.values(currentResults)) {
+                    for (const std of group.standards) {
+                        const lvl = std.supportLevel || 'Not Evaluated';
+                        if (!supportCounts[lvl]) supportCounts[lvl] = 0;
+                        supportCounts[lvl]++;
+                    }
+                }
+                const totalEvaluated = Object.values(supportCounts).reduce((a, b) => a + b, 0);
+                const weightedScore = (supportCounts['Supports'] || 0) + 0.5 * (supportCounts['Partially Supports'] || 0);
+                const ratio = totalEvaluated > 0 ? weightedScore / totalEvaluated : 0;
+                let grade;
+                if (ratio >= 0.9) grade = 'A';
+                else if (ratio >= 0.75) grade = 'B';
+                else if (ratio >= 0.5) grade = 'C';
+                else grade = 'D';
+
+                // Draw summary section with a simple donut chart and counts
+                if (includeSummary) {
+                    const chartSize = 160;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = chartSize;
+                    canvas.height = chartSize;
+                    const ctx = canvas.getContext('2d');
+                    // Define colors for each support level slice
+                    const pieColors = {
+                        'Supports': '#34d399',
+                        'Partially Supports': '#fbbf24',
+                        'Does Not Support': '#f87171',
+                        'Not Applicable': '#9ca3af',
+                        'Not Evaluated': '#a78bfa'
+                    };
+                    let startAngle = 0;
+                    Object.keys(supportCounts).forEach(key => {
+                        const value = supportCounts[key];
+                        if (!value) return;
+                        const sliceAngle = (value / totalEvaluated) * Math.PI * 2;
+                        ctx.beginPath();
+                        ctx.moveTo(chartSize / 2, chartSize / 2);
+                        ctx.arc(chartSize / 2, chartSize / 2, chartSize / 2 - 10, startAngle, startAngle + sliceAngle);
+                        ctx.closePath();
+                        ctx.fillStyle = pieColors[key] || '#cbd5e0';
+                        ctx.fill();
+                        startAngle += sliceAngle;
+                    });
+                    // Inner circle for donut
+                    ctx.beginPath();
+                    ctx.arc(chartSize / 2, chartSize / 2, chartSize / 4, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+                    // Grade text in center
+                    ctx.fillStyle = '#1a202c';
+                    ctx.font = 'bold 20px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(grade, chartSize / 2, chartSize / 2);
+
+                    const chartImage = canvas.toDataURL('image/png');
+                    // Add summary heading
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.setTextColor(15, 23, 42);
+                    doc.text('Summary', margin, y);
+                    y += 16;
+                    // Add grade
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.text(`Overall Grade: ${grade}`, margin, y);
+                    y += 14;
+                    // List counts
+                    const bulletLines = [
+                        `Supports: ${supportCounts['Supports'] || 0}`,
+                        `Partially Supports: ${supportCounts['Partially Supports'] || 0}`,
+                        `Does Not Support: ${supportCounts['Does Not Support'] || 0}`,
+                        `Not Applicable: ${supportCounts['Not Applicable'] || 0}`,
+                        `Not Evaluated: ${supportCounts['Not Evaluated'] || 0}`
+                    ];
+                    bulletLines.forEach(b => {
+                        doc.text('• ' + b, margin, y);
+                        y += 12;
+                    });
+                    // Place chart on the right
+                    const imgWidth = 140;
+                    const imgHeight = 140;
+                    const imgX = pageWidth - margin - imgWidth;
+                    const imgY = y - (bulletLines.length * 12) - 30;
+                    doc.addImage(chartImage, 'PNG', imgX, imgY, imgWidth, imgHeight);
+                    y += imgHeight - (bulletLines.length * 12) + 20;
+                    // Extra spacing after summary
+                    y += 10;
+                }
+
+                // Define colour palettes
+                const rowBg = {
+                    'Supports': [209, 250, 229],          // light green
+                    'Partially Supports': [254, 243, 199], // light yellow
+                    'Does Not Support': [254, 226, 226],   // light red
+                    'Not Applicable': [243, 244, 246],     // light gray
+                    'Not Evaluated': [237, 233, 254]       // light purple
+                };
+                const labelText = {
+                    'Yes': 'Fully Accessible',
+                    'Partially': 'Partially Accessible',
+                    'No': 'Not Accessible',
+                    'Not Evaluated': 'Not Evaluated'
+                };
+                const labelBg = {
+                    'Yes': [209, 250, 229],
+                    'Partially': [254, 243, 199],
+                    'No': [254, 226, 226],
+                    'Not Evaluated': [237, 233, 254]
+                };
+
+                // Table column widths
+                const col1Width = 200; // Success Criterion
+                const col2Width = 120; // Support Level
+                const col3Width = pageWidth - 2 * margin - col1Width - col2Width; // Evaluator Notes
+                const lineHeight = 12;
+
+                // Iterate through each user group
+                for (const [groupName, groupData] of Object.entries(currentResults)) {
+                    const groupAccessibility = groupData.accessibility || 'Not Evaluated';
+                    // Page break before new group if needed
+                    if (y + 60 > pageHeight - margin) {
+                        doc.addPage();
+                        y = margin;
+                    }
+                    // Group title
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.setTextColor(15, 23, 42);
+                    doc.text(groupName, margin, y);
+                    // Accessibility label
+                    const label = labelText[groupAccessibility] || 'Not Evaluated';
+                    const bgColor = labelBg[groupAccessibility] || [237, 233, 254];
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    const labelWidth = doc.getStringUnitWidth(label) * doc.internal.getFontSize() + 12;
+                    const labelHeight = 16;
+                    const labelX = pageWidth - margin - labelWidth;
+                    const labelY = y - 12;
+                    doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+                    doc.rect(labelX, labelY, labelWidth, labelHeight, 'F');
+                    doc.setTextColor(15, 23, 42);
+                    // Center the label text horizontally and vertically within the badge
+                    const labelYCenter = labelY + labelHeight / 2 + 3;
+                    doc.text(label, labelX + labelWidth / 2, labelYCenter, { align: 'center' });
+                    y += 18;
+                    // Group description
+                    if (groupData.description) {
+                        doc.setFont('helvetica', 'italic');
+                        doc.setFontSize(9);
+                        const descLines = doc.splitTextToSize(groupData.description, pageWidth - 2 * margin);
+                        for (const line of descLines) {
+                            if (y + lineHeight > pageHeight - margin) {
+                                doc.addPage();
+                                y = margin;
+                            }
+                            doc.setTextColor(71, 85, 105);
+                            doc.text(line, margin, y);
+                            y += lineHeight;
+                        }
+                    }
+                    // Table header
+                    if (y + 24 > pageHeight - margin) {
+                        doc.addPage();
+                        y = margin;
+                    }
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(10);
+                    doc.setFillColor(243, 244, 246);
+                    const headerHeight = 20;
+                    doc.rect(margin, y - 10, col1Width + col2Width + col3Width, headerHeight, 'F');
+                    doc.setTextColor(30, 41, 59);
+                    doc.text('Success Criterion', margin + 4, y);
+                    doc.text('Support Level', margin + col1Width + 4, y);
+                    doc.text('Evaluator Notes', margin + col1Width + col2Width + 4, y);
+                    y += headerHeight;
+                    // Table body
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    for (const std of groupData.standards) {
+                        const sLevel = std.supportLevel || 'Not Evaluated';
+                        const bg = rowBg[sLevel] || [237, 233, 254];
+                        // Build text for columns
+                        // Avoid duplicating the criterion ID in the name. Some parsed
+                        // names already include the ID (e.g., "1.1.1 Non-text Content").
+                        let critName = std.name || '';
+                        if (critName) {
+                            const idLower = String(std.id).toLowerCase();
+                            const nameLower = critName.toLowerCase();
+                            if (nameLower.startsWith(idLower)) {
+                                // Remove the ID portion and any leading punctuation
+                                critName = critName.substring(std.id.length).trim();
+                                // Remove leading punctuation or separators (e.g., ":" or "-")
+                                critName = critName.replace(/^[:.\-\s]+/, '').trim();
+                            }
+                        }
+                        const criterionText = `${std.id} ${critName}`.trim();
+                        const criterionLines = doc.splitTextToSize(criterionText, col1Width - 8);
+                        const supportLines = doc.splitTextToSize(sLevel, col2Width - 8);
+                        const commentText = std.comments || 'No additional comments found.';
+                        const commentLines = doc.splitTextToSize(commentText, col3Width - 8);
+                        const maxLines = Math.max(criterionLines.length, supportLines.length, commentLines.length);
+                        const rowHeight = maxLines * lineHeight + 4;
+                        // Page break if row won't fit
+                        if (y + rowHeight > pageHeight - margin) {
+                            doc.addPage();
+                            y = margin;
+                        }
+                        // Row background
+                        doc.setFillColor(bg[0], bg[1], bg[2]);
+                        doc.rect(margin, y - 8, col1Width + col2Width + col3Width, rowHeight, 'F');
+                        // Text color
+                        doc.setTextColor(15, 23, 42);
+                        // Draw each column text
+                        criterionLines.forEach((ln, idx) => {
+                            doc.text(ln, margin + 4, y + idx * lineHeight);
+                        });
+                        supportLines.forEach((ln, idx) => {
+                            doc.text(ln, margin + col1Width + 4, y + idx * lineHeight);
+                        });
+                        commentLines.forEach((ln, idx) => {
+                            doc.text(ln, margin + col1Width + col2Width + 4, y + idx * lineHeight);
+                        });
+                        y += rowHeight;
+                    }
+                    y += 12; // space after each group
+                }
+                // Add page numbers
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(107, 114, 128);
+                    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+                }
+                // Save the document
+                doc.save('vpat-analysis-report.pdf');
+                console.log('✅ PDF exported successfully');
+            } catch (error) {
+                console.error('❌ PDF export failed:', error);
+                showError('PDF export failed: ' + error.message);
+            }
+        }
+
+        // === INITIALIZE ON PAGE LOAD ===
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM loaded, initializing app...');
+            initializeApp();
+        });
+
+        console.log('📜 VPAT Analyzer script loaded');
+    </script>
+</body>
+</html>
